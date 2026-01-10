@@ -1,1 +1,1485 @@
-index.html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gmail Telegram Bot - Cloudflare Worker 部署指南</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+  <style>
+    .gradient-bg {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .code-container {
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    pre[class*="language-"] {
+      margin: 0;
+      border-radius: 0.5rem;
+    }
+    .step-number {
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+    }
+    .copy-btn:active {
+      transform: scale(0.95);
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+  <!-- Header -->
+  <header class="gradient-bg py-12 px-4">
+    <div class="max-w-5xl mx-auto text-center">
+      <div class="flex items-center justify-center gap-4 mb-4">
+        <span class="text-5xl">📧</span>
+        <span class="text-5xl">🤖</span>
+      </div>
+      <h1 class="text-4xl md:text-5xl font-bold mb-4">Gmail Telegram Bot</h1>
+      <p class="text-xl text-purple-100 max-w-2xl mx-auto">
+        基于 Cloudflare Workers 的 Telegram Bot，安全访问 Gmail 邮箱
+      </p>
+      <div class="flex flex-wrap justify-center gap-3 mt-6">
+        <span class="bg-white/20 px-3 py-1 rounded-full text-sm">✨ 完全免费</span>
+        <span class="bg-white/20 px-3 py-1 rounded-full text-sm">🔒 OAuth 安全认证</span>
+        <span class="bg-white/20 px-3 py-1 rounded-full text-sm">⚡ 按需触发</span>
+        <span class="bg-white/20 px-3 py-1 rounded-full text-sm">🌐 无需服务器</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 py-12">
+    <!-- Features -->
+    <section class="mb-16">
+      <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+        <span class="text-purple-400">🚀</span> 功能特性
+      </h2>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="bg-gray-800 rounded-xl p-5 border border-gray-700">
+          <div class="text-2xl mb-2">📬</div>
+          <h3 class="font-semibold mb-1">查看未读邮件</h3>
+          <p class="text-gray-400 text-sm">获取最新 8 封未读邮件，显示发件人、主题、时间和预览</p>
+        </div>
+        <div class="bg-gray-800 rounded-xl p-5 border border-gray-700">
+          <div class="text-2xl mb-2">🔍</div>
+          <h3 class="font-semibold mb-1">智能搜索</h3>
+          <p class="text-gray-400 text-sm">支持 Gmail 搜索语法，如 from:xxx after:2024/01/01</p>
+        </div>
+        <div class="bg-gray-800 rounded-xl p-5 border border-gray-700">
+          <div class="text-2xl mb-2">📎</div>
+          <h3 class="font-semibold mb-1">附件检测</h3>
+          <p class="text-gray-400 text-sm">自动检测并提示邮件中的附件数量</p>
+        </div>
+        <div class="bg-gray-800 rounded-xl p-5 border border-gray-700">
+          <div class="text-2xl mb-2">✅</div>
+          <h3 class="font-semibold mb-1">一键标记已读</h3>
+          <p class="text-gray-400 text-sm">通过内联按钮快速将邮件标记为已读</p>
+        </div>
+        <div class="bg-gray-800 rounded-xl p-5 border border-gray-700">
+          <div class="text-2xl mb-2">🔐</div>
+          <h3 class="font-semibold mb-1">安全认证</h3>
+          <p class="text-gray-400 text-sm">使用 Google OAuth 2.0，无需提供账号密码</p>
+        </div>
+        <div class="bg-gray-800 rounded-xl p-5 border border-gray-700">
+          <div class="text-2xl mb-2">🔄</div>
+          <h3 class="font-semibold mb-1">自动刷新 Token</h3>
+          <p class="text-gray-400 text-sm">Token 过期自动刷新，无需重复登录</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Commands -->
+    <section class="mb-16">
+      <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+        <span class="text-purple-400">💬</span> 支持的命令
+      </h2>
+      <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+        <table class="w-full">
+          <thead class="bg-gray-700/50">
+            <tr>
+              <th class="text-left px-5 py-3 font-semibold">命令</th>
+              <th class="text-left px-5 py-3 font-semibold">说明</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-700">
+            <tr><td class="px-5 py-3 font-mono text-purple-400">/start</td><td class="px-5 py-3 text-gray-300">显示欢迎消息和功能菜单</td></tr>
+            <tr><td class="px-5 py-3 font-mono text-purple-400">/login</td><td class="px-5 py-3 text-gray-300">登录 Gmail（显示授权按钮）</td></tr>
+            <tr><td class="px-5 py-3 font-mono text-purple-400">/new</td><td class="px-5 py-3 text-gray-300">获取未读邮件（最新 8 封）</td></tr>
+            <tr><td class="px-5 py-3 font-mono text-purple-400">/search 关键词</td><td class="px-5 py-3 text-gray-300">搜索邮件（支持 Gmail 语法）</td></tr>
+            <tr><td class="px-5 py-3 font-mono text-purple-400">/logout</td><td class="px-5 py-3 text-gray-300">退出登录，删除 Token</td></tr>
+            <tr><td class="px-5 py-3 font-mono text-purple-400">/help</td><td class="px-5 py-3 text-gray-300">显示帮助信息</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Deployment Steps -->
+    <section class="mb-16">
+      <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+        <span class="text-purple-400">📋</span> 部署步骤
+      </h2>
+      
+      <div class="space-y-6">
+        <!-- Step 1 -->
+        <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <div class="flex gap-4">
+            <div class="step-number bg-purple-600 rounded-full flex items-center justify-center font-bold shrink-0">1</div>
+            <div class="flex-1">
+              <h3 class="font-bold text-lg mb-2">创建 Telegram Bot</h3>
+              <ol class="list-decimal list-inside text-gray-300 space-y-1 ml-1">
+                <li>在 Telegram 搜索 <code class="bg-gray-700 px-2 py-0.5 rounded">@BotFather</code></li>
+                <li>发送 <code class="bg-gray-700 px-2 py-0.5 rounded">/newbot</code> 创建新 Bot</li>
+                <li>按提示设置名称，获取 <code class="bg-purple-700/50 px-2 py-0.5 rounded text-purple-300">BOT_TOKEN</code></li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <div class="flex gap-4">
+            <div class="step-number bg-purple-600 rounded-full flex items-center justify-center font-bold shrink-0">2</div>
+            <div class="flex-1">
+              <h3 class="font-bold text-lg mb-2">创建 Google OAuth 凭证</h3>
+              <ol class="list-decimal list-inside text-gray-300 space-y-2 ml-1">
+                <li>访问 <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="text-purple-400 hover:underline">Google Cloud Console</a></li>
+                <li>创建项目（如已有可跳过）</li>
+                <li>创建 OAuth 2.0 客户端 ID（选择 Web 应用类型）</li>
+                <li>添加授权重定向 URI：
+                  <code class="block bg-gray-700 px-3 py-2 rounded mt-1 text-sm break-all">https://your-worker.your-username.workers.dev/oauth/callback</code>
+                </li>
+                <li>启用 <a href="https://console.cloud.google.com/apis/library/gmail.googleapis.com" target="_blank" class="text-purple-400 hover:underline">Gmail API</a></li>
+                <li>记录 <code class="bg-purple-700/50 px-2 py-0.5 rounded text-purple-300">CLIENT_ID</code> 和 <code class="bg-purple-700/50 px-2 py-0.5 rounded text-purple-300">CLIENT_SECRET</code></li>
+              </ol>
+              <div class="mt-3 p-3 bg-yellow-900/30 border border-yellow-700/50 rounded-lg text-yellow-200 text-sm">
+                ⚠️ 注意：如果应用未发布，需在 OAuth 同意屏幕添加测试用户（你的 Gmail 地址）
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <div class="flex gap-4">
+            <div class="step-number bg-purple-600 rounded-full flex items-center justify-center font-bold shrink-0">3</div>
+            <div class="flex-1">
+              <h3 class="font-bold text-lg mb-2">创建 Cloudflare Worker</h3>
+              <ol class="list-decimal list-inside text-gray-300 space-y-1 ml-1">
+                <li>登录 <a href="https://dash.cloudflare.com" target="_blank" class="text-purple-400 hover:underline">Cloudflare Dashboard</a></li>
+                <li>进入 Workers & Pages → Create application → Create Worker</li>
+                <li>给 Worker 起名（如 <code class="bg-gray-700 px-2 py-0.5 rounded">gmail-bot</code>）</li>
+                <li>点击 Deploy 创建</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <div class="flex gap-4">
+            <div class="step-number bg-purple-600 rounded-full flex items-center justify-center font-bold shrink-0">4</div>
+            <div class="flex-1">
+              <h3 class="font-bold text-lg mb-2">创建 KV Namespace</h3>
+              <ol class="list-decimal list-inside text-gray-300 space-y-1 ml-1">
+                <li>Workers & Pages → KV → Create namespace</li>
+                <li>名称填 <code class="bg-gray-700 px-2 py-0.5 rounded">USER_TOKENS</code></li>
+                <li>进入 Worker Settings → Variables → KV Namespace Bindings</li>
+                <li>Add binding：Variable name 填 <code class="bg-gray-700 px-2 py-0.5 rounded">USER_TOKENS</code></li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <div class="flex gap-4">
+            <div class="step-number bg-purple-600 rounded-full flex items-center justify-center font-bold shrink-0">5</div>
+            <div class="flex-1">
+              <h3 class="font-bold text-lg mb-2">设置环境变量</h3>
+              <p class="text-gray-300 mb-3">在 Worker Settings → Variables → Environment Variables 添加：</p>
+              <div class="bg-gray-900 rounded-lg p-4 space-y-2 font-mono text-sm">
+                <div><span class="text-purple-400">BOT_TOKEN</span> = <span class="text-gray-400">你的 Telegram Bot Token</span></div>
+                <div><span class="text-purple-400">BOT_SECRET</span> = <span class="text-gray-400">自定义密码（如 mysecret123）</span></div>
+                <div><span class="text-purple-400">GOOGLE_CLIENT_ID</span> = <span class="text-gray-400">OAuth Client ID</span></div>
+                <div><span class="text-purple-400">GOOGLE_CLIENT_SECRET</span> = <span class="text-gray-400">OAuth Client Secret</span></div>
+              </div>
+              <div class="mt-3 p-3 bg-blue-900/30 border border-blue-700/50 rounded-lg text-blue-200 text-sm">
+                💡 建议将 GOOGLE_CLIENT_SECRET 设为加密变量（Encrypt）
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 6 -->
+        <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <div class="flex gap-4">
+            <div class="step-number bg-purple-600 rounded-full flex items-center justify-center font-bold shrink-0">6</div>
+            <div class="flex-1">
+              <h3 class="font-bold text-lg mb-2">复制代码到 Worker</h3>
+              <ol class="list-decimal list-inside text-gray-300 space-y-1 ml-1">
+                <li>在 Worker 页面点击 "Edit code" 或 "Quick edit"</li>
+                <li>删除默认代码</li>
+                <li>复制下方完整代码粘贴</li>
+                <li>点击 Save and Deploy</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 7 -->
+        <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <div class="flex gap-4">
+            <div class="step-number bg-purple-600 rounded-full flex items-center justify-center font-bold shrink-0">7</div>
+            <div class="flex-1">
+              <h3 class="font-bold text-lg mb-2">一键设置 Webhook</h3>
+              <p class="text-gray-300 mb-2">浏览器访问以下地址完成设置：</p>
+              <code class="block bg-gray-700 px-3 py-2 rounded text-sm break-all">
+                https://your-worker.workers.dev/setup?secret=你的BOT_SECRET
+              </code>
+              <p class="text-gray-400 text-sm mt-2">看到 "✅ 设置成功" 即完成</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 8 -->
+        <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 border-green-500/50">
+          <div class="flex gap-4">
+            <div class="step-number bg-green-600 rounded-full flex items-center justify-center font-bold shrink-0">✓</div>
+            <div class="flex-1">
+              <h3 class="font-bold text-lg mb-2 text-green-400">开始使用！</h3>
+              <ol class="list-decimal list-inside text-gray-300 space-y-1 ml-1">
+                <li>在 Telegram 找到你的 Bot</li>
+                <li>发送 <code class="bg-gray-700 px-2 py-0.5 rounded">/start</code> 查看菜单</li>
+                <li>发送 <code class="bg-gray-700 px-2 py-0.5 rounded">/login</code> 登录 Gmail</li>
+                <li>发送 <code class="bg-gray-700 px-2 py-0.5 rounded">/new</code> 查看未读邮件</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Complete Code -->
+    <section class="mb-16">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold flex items-center gap-2">
+          <span class="text-purple-400">📄</span> 完整 Worker 代码
+        </h2>
+        <button id="copyBtn" class="copy-btn bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg font-semibold transition flex items-center gap-2">
+          <span id="copyIcon">📋</span>
+          <span id="copyText">复制代码</span>
+        </button>
+      </div>
+      
+      <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+        <div class="bg-gray-700/50 px-4 py-2 flex items-center gap-2 border-b border-gray-700">
+          <span class="w-3 h-3 rounded-full bg-red-500"></span>
+          <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+          <span class="w-3 h-3 rounded-full bg-green-500"></span>
+          <span class="ml-2 text-gray-400 text-sm font-mono">worker.js</span>
+        </div>
+        <div class="code-container">
+          <pre><code class="language-javascript" id="workerCode"></code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Environment Variables -->
+    <section class="mb-16">
+      <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+        <span class="text-purple-400">⚙️</span> 环境变量说明
+      </h2>
+      <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+        <table class="w-full">
+          <thead class="bg-gray-700/50">
+            <tr>
+              <th class="text-left px-5 py-3 font-semibold">变量名</th>
+              <th class="text-left px-5 py-3 font-semibold">说明</th>
+              <th class="text-left px-5 py-3 font-semibold">示例</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-700">
+            <tr>
+              <td class="px-5 py-3 font-mono text-purple-400">BOT_TOKEN</td>
+              <td class="px-5 py-3 text-gray-300">Telegram Bot Token</td>
+              <td class="px-5 py-3 text-gray-400 text-sm">123456:ABC-DEF...</td>
+            </tr>
+            <tr>
+              <td class="px-5 py-3 font-mono text-purple-400">BOT_SECRET</td>
+              <td class="px-5 py-3 text-gray-300">Webhook 保护密码</td>
+              <td class="px-5 py-3 text-gray-400 text-sm">mysecret123</td>
+            </tr>
+            <tr>
+              <td class="px-5 py-3 font-mono text-purple-400">GOOGLE_CLIENT_ID</td>
+              <td class="px-5 py-3 text-gray-300">Google OAuth Client ID</td>
+              <td class="px-5 py-3 text-gray-400 text-sm">xxx.apps.googleusercontent.com</td>
+            </tr>
+            <tr>
+              <td class="px-5 py-3 font-mono text-purple-400">GOOGLE_CLIENT_SECRET</td>
+              <td class="px-5 py-3 text-gray-300">Google OAuth Secret (建议加密)</td>
+              <td class="px-5 py-3 text-gray-400 text-sm">GOCSPX-xxx</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Troubleshooting -->
+    <section class="mb-16">
+      <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+        <span class="text-purple-400">🔧</span> 常见问题
+      </h2>
+      <div class="space-y-4">
+        <details class="bg-gray-800 rounded-xl border border-gray-700">
+          <summary class="px-5 py-4 cursor-pointer font-semibold">授权时提示 "Access blocked" 或 "未经验证的应用"</summary>
+          <div class="px-5 pb-4 text-gray-300">
+            <p>这是因为 Google 应用未发布。解决方法：</p>
+            <ol class="list-decimal list-inside mt-2 space-y-1">
+              <li>进入 Google Cloud Console → OAuth 同意屏幕</li>
+              <li>在"测试用户"中添加你的 Gmail 地址</li>
+              <li>或者发布应用（需要验证）</li>
+            </ol>
+          </div>
+        </details>
+        
+        <details class="bg-gray-800 rounded-xl border border-gray-700">
+          <summary class="px-5 py-4 cursor-pointer font-semibold">提示 "redirect_uri_mismatch"</summary>
+          <div class="px-5 pb-4 text-gray-300">
+            <p>重定向 URI 不匹配。确保 Google Console 中的授权重定向 URI 完全匹配：</p>
+            <code class="block bg-gray-700 px-3 py-2 rounded mt-2 text-sm">https://your-worker.workers.dev/oauth/callback</code>
+          </div>
+        </details>
+        
+        <details class="bg-gray-800 rounded-xl border border-gray-700">
+          <summary class="px-5 py-4 cursor-pointer font-semibold">Bot 没有响应</summary>
+          <div class="px-5 pb-4 text-gray-300">
+            <ol class="list-decimal list-inside space-y-1">
+              <li>确认已访问 <code class="bg-gray-700 px-2 py-0.5 rounded">/setup?secret=xxx</code> 设置 Webhook</li>
+              <li>检查 Worker 日志是否有错误</li>
+              <li>确认环境变量配置正确</li>
+              <li>确认 KV Namespace 已绑定</li>
+            </ol>
+          </div>
+        </details>
+        
+        <details class="bg-gray-800 rounded-xl border border-gray-700">
+          <summary class="px-5 py-4 cursor-pointer font-semibold">在中国大陆无法授权</summary>
+          <div class="px-5 pb-4 text-gray-300">
+            <p>首次授权需要访问 Google，可能需要科学上网。授权成功后，Bot 调用 Gmail API 是通过 Cloudflare Workers 发起的，不受本地网络限制。</p>
+          </div>
+        </details>
+
+        <details class="bg-gray-800 rounded-xl border border-gray-700">
+          <summary class="px-5 py-4 cursor-pointer font-semibold">Token 刷新失败</summary>
+          <div class="px-5 pb-4 text-gray-300">
+            <p>可能原因：</p>
+            <ol class="list-decimal list-inside mt-2 space-y-1">
+              <li>用户撤销了授权 → 需要重新 /login</li>
+              <li>Refresh Token 过期（6个月未使用）→ 重新登录</li>
+              <li>OAuth 凭证被删除或更改 → 检查 Google Console</li>
+            </ol>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- Architecture -->
+    <section class="mb-16">
+      <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+        <span class="text-purple-400">🏗️</span> 架构说明
+      </h2>
+      <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <div class="flex flex-wrap gap-4 justify-center items-center text-center">
+          <div class="bg-blue-600/20 border border-blue-500/50 rounded-lg px-4 py-3">
+            <div class="text-2xl mb-1">📱</div>
+            <div class="text-sm">Telegram</div>
+          </div>
+          <div class="text-gray-500">→</div>
+          <div class="bg-orange-600/20 border border-orange-500/50 rounded-lg px-4 py-3">
+            <div class="text-2xl mb-1">⚡</div>
+            <div class="text-sm">Cloudflare Worker</div>
+          </div>
+          <div class="text-gray-500">→</div>
+          <div class="bg-red-600/20 border border-red-500/50 rounded-lg px-4 py-3">
+            <div class="text-2xl mb-1">📧</div>
+            <div class="text-sm">Gmail API</div>
+          </div>
+        </div>
+        <div class="mt-6 text-center text-gray-400 text-sm">
+          <p>Cloudflare KV 存储用户 Token，Worker 处理 Webhook 并调用 Gmail API</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-gray-800/50 border-t border-gray-700 py-8 px-4">
+    <div class="max-w-5xl mx-auto text-center text-gray-400">
+      <p>Gmail Telegram Bot - 基于 Cloudflare Workers</p>
+      <p class="mt-2 text-sm">完全免费 · 安全可靠 · 按需触发</p>
+    </div>
+  </footer>
+
+  <script>
+    // Worker 代码 - 使用 JavaScript 字符串避免 HTML 编码问题
+    const workerCode = `/**
+ * Gmail Telegram Bot - Cloudflare Worker
+ * 功能：通过 Telegram Bot 安全访问 Gmail 邮箱
+ * 版本：2.1（优化版 - 支持更多操作按钮）
+ */
+
+// ==================== 配置常量 ====================
+const GMAIL_SCOPES = [
+  'https://www.googleapis.com/auth/gmail.readonly',
+  'https://www.googleapis.com/auth/gmail.modify'
+].join(' ');
+
+const MAX_EMAILS = 8;
+const PREVIEW_LENGTH = 300;
+const MAX_CONTENT_LENGTH = 3500;
+const TOKEN_REFRESH_BUFFER = 60000;
+
+// ==================== 主入口 ====================
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    const path = url.pathname;
+
+    try {
+      if (path === '/setup') {
+        return await handleSetup(url, env);
+      }
+      
+      if (path === '/oauth/callback') {
+        return await handleOAuthCallback(request, env);
+      }
+      
+      if (path === '/webhook' && request.method === 'POST') {
+        const secret = url.searchParams.get('secret');
+        if (secret !== env.BOT_SECRET) {
+          return jsonResponse({ error: 'Unauthorized' }, 401);
+        }
+        const update = await request.json();
+        ctx.waitUntil(handleBotUpdate(update, env, url.origin));
+        return jsonResponse({ ok: true });
+      }
+
+      return new Response(generateHomePage(), {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      return jsonResponse({ error: error.message }, 500);
+    }
+  }
+};
+
+// ==================== Webhook 设置 ====================
+async function handleSetup(url, env) {
+  const secret = url.searchParams.get('secret');
+  if (secret !== env.BOT_SECRET) {
+    return new Response('❌ 错误：请提供正确的 secret 参数', { 
+      status: 401,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+    });
+  }
+
+  const webhookUrl = \`\${url.origin}/webhook?secret=\${env.BOT_SECRET}\`;
+  const results = [];
+
+  const webhookResp = await telegramAPI(env.BOT_TOKEN, 'setWebhook', { 
+    url: webhookUrl,
+    allowed_updates: ['message', 'callback_query']
+  });
+  results.push(\`Webhook: \${webhookResp.ok ? '✅ 成功' : '❌ 失败'}\`);
+
+  const commands = [
+    { command: 'start', description: '🏠 开始使用' },
+    { command: 'login', description: '🔐 登录 Gmail' },
+    { command: 'new', description: '📬 查看未读邮件' },
+    { command: 'search', description: '🔍 搜索邮件' },
+    { command: 'logout', description: '🚪 退出登录' },
+    { command: 'help', description: '❓ 帮助信息' }
+  ];
+  
+  const commandsResp = await telegramAPI(env.BOT_TOKEN, 'setMyCommands', { commands });
+  results.push(\`命令菜单: \${commandsResp.ok ? '✅ 成功' : '❌ 失败'}\`);
+
+  const meResp = await telegramAPI(env.BOT_TOKEN, 'getMe');
+  if (meResp.ok) {
+    results.push(\`\\nBot: @\${meResp.result.username}\`);
+  }
+
+  return new Response(\`🤖 Gmail Bot 设置结果\\n\${'='.repeat(30)}\\n\${results.join('\\n')}\\n\\n现在可以在 Telegram 中使用 Bot 了！\`, {
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+  });
+}
+
+// ==================== OAuth 回调处理 ====================
+async function handleOAuthCallback(request, env) {
+  const url = new URL(request.url);
+  const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
+  const error = url.searchParams.get('error');
+
+  if (error) {
+    return new Response(generateErrorPage(error), {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' }
+    });
+  }
+
+  if (!code || !state) {
+    return new Response(generateErrorPage('缺少必要参数'), {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' }
+    });
+  }
+
+  let stateData;
+  try {
+    stateData = JSON.parse(atob(state));
+  } catch {
+    return new Response(generateErrorPage('State 无效'), {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' }
+    });
+  }
+
+  const { userId, nonce } = stateData;
+  
+  const storedNonce = await env.USER_TOKENS.get(\`nonce:\${userId}\`);
+  if (!storedNonce || storedNonce !== nonce) {
+    return new Response(generateErrorPage('授权已过期，请重新登录'), {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' }
+    });
+  }
+
+  const tokenResp = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      code,
+      client_id: env.GOOGLE_CLIENT_ID,
+      client_secret: env.GOOGLE_CLIENT_SECRET,
+      redirect_uri: \`\${url.origin}/oauth/callback\`,
+      grant_type: 'authorization_code'
+    })
+  });
+
+  const tokenData = await tokenResp.json();
+
+  if (!tokenData.access_token) {
+    console.error('Token exchange failed:', tokenData);
+    return new Response(generateErrorPage(tokenData.error_description || tokenData.error || 'Token 获取失败'), {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' }
+    });
+  }
+
+  const profileResp = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
+    headers: { Authorization: \`Bearer \${tokenData.access_token}\` }
+  });
+  const profile = await profileResp.json();
+
+  await env.USER_TOKENS.put(\`token:\${userId}\`, JSON.stringify({
+    access_token: tokenData.access_token,
+    refresh_token: tokenData.refresh_token,
+    expiry: Date.now() + (tokenData.expires_in * 1000),
+    email: profile.emailAddress || 'unknown'
+  }));
+
+  await env.USER_TOKENS.delete(\`nonce:\${userId}\`);
+
+  await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
+    chat_id: userId,
+    text: \`✅ *登录成功！*\\n\\n📧 已绑定: \\\`\${profile.emailAddress || 'Gmail'}\\\`\\n\\n发送 /new 查看未读邮件\`,
+    parse_mode: 'Markdown'
+  });
+
+  return new Response(generateSuccessPage(profile.emailAddress || 'Gmail'), {
+    headers: { 'Content-Type': 'text/html; charset=utf-8' }
+  });
+}
+
+// 生成授权成功页面
+function generateSuccessPage(email) {
+  return \`<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>授权成功 - Gmail Bot</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #fff;
+      padding: 20px;
+    }
+    .card {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
+      padding: 48px;
+      text-align: center;
+      max-width: 420px;
+      width: 100%;
+      border: 1px solid rgba(255,255,255,0.2);
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    }
+    .icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      font-size: 40px;
+      box-shadow: 0 10px 30px rgba(16,185,129,0.4);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #10b981, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .email {
+      background: rgba(255,255,255,0.1);
+      padding: 12px 20px;
+      border-radius: 12px;
+      margin: 20px 0;
+      font-family: monospace;
+      font-size: 15px;
+      color: #a5b4fc;
+      border: 1px solid rgba(165,180,252,0.3);
+    }
+    .hint {
+      color: #94a3b8;
+      font-size: 14px;
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 32px;
+      background: linear-gradient(135deg, #0088cc 0%, #0077b5 100%);
+      color: white;
+      text-decoration: none;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 16px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0,136,204,0.4);
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,136,204,0.5);
+    }
+    .features {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .feature { text-align: center; font-size: 12px; color: #94a3b8; }
+    .feature-icon { font-size: 20px; margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">✓</div>
+    <h1>授权成功！</h1>
+    <p style="color:#e2e8f0;margin-bottom:8px;">您的 Gmail 账号已成功绑定</p>
+    <div class="email">📧 \${email}</div>
+    <p class="hint">现在可以返回 Telegram 使用以下命令：<br><strong>/new</strong> 查看未读邮件 · <strong>/search</strong> 搜索邮件</p>
+    <a href="https://t.me" class="btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+      打开 Telegram
+    </a>
+    <div class="features">
+      <div class="feature"><div class="feature-icon">🔒</div><div>安全加密</div></div>
+      <div class="feature"><div class="feature-icon">📬</div><div>实时查询</div></div>
+      <div class="feature"><div class="feature-icon">🔍</div><div>智能搜索</div></div>
+    </div>
+  </div>
+</body>
+</html>\`;
+}
+
+// 生成错误页面
+function generateErrorPage(errorMsg) {
+  return \`<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>授权失败 - Gmail Bot</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #fff;
+      padding: 20px;
+    }
+    .card {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
+      padding: 48px;
+      text-align: center;
+      max-width: 420px;
+      width: 100%;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      font-size: 40px;
+    }
+    h1 { font-size: 24px; color: #f87171; margin-bottom: 16px; }
+    .error { color: #94a3b8; margin-bottom: 24px; }
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      background: #3b82f6;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">✕</div>
+    <h1>授权失败</h1>
+    <p class="error">\${errorMsg}</p>
+    <a href="https://t.me" class="btn">返回 Telegram 重试</a>
+  </div>
+</body>
+</html>\`;
+}
+
+// ==================== Bot 更新处理 ====================
+async function handleBotUpdate(update, env, origin) {
+  if (update.callback_query) {
+    await handleCallbackQuery(update.callback_query, env, origin);
+    return;
+  }
+
+  if (!update.message?.text) return;
+
+  const msg = update.message;
+  const chatId = msg.chat.id;
+  const userId = msg.from.id.toString();
+  const text = msg.text.trim();
+
+  const [command, ...args] = text.split(/\\s+/);
+  const cmd = command.toLowerCase().replace(/^\\//, '').replace(/@.*$/, '');
+
+  switch (cmd) {
+    case 'start':
+    case 'help':
+      await sendWelcome(chatId, env);
+      break;
+    case 'login':
+      await sendLoginLink(chatId, userId, origin, env);
+      break;
+    case 'logout':
+      await handleLogout(chatId, userId, env);
+      break;
+    case 'new':
+    case 'unread':
+    case 'get':
+      await handleGetMails(chatId, userId, 'is:unread', env);
+      break;
+    case 'search':
+      const query = args.join(' ');
+      if (!query) {
+        await sendMessage(chatId, '请输入搜索关键词\\n\\n例如：\\n/search 项目报告\\n/search from:test@example.com\\n/search after:2024/01/01', env);
+      } else {
+        await handleGetMails(chatId, userId, query, env);
+      }
+      break;
+  }
+}
+
+// ==================== 命令处理函数 ====================
+async function sendWelcome(chatId, env) {
+  const keyboard = {
+    inline_keyboard: [
+      [
+        { text: '🔐 登录 Gmail', callback_data: 'action:login' },
+        { text: '📬 未读邮件', callback_data: 'action:new' }
+      ],
+      [
+        { text: '🔍 搜索邮件', callback_data: 'action:search_help' },
+        { text: '🚪 退出登录', callback_data: 'action:logout' }
+      ]
+    ]
+  };
+
+  const text = \`🤖 *Gmail Bot*
+
+欢迎使用 Gmail 邮件助手！
+
+*可用命令：*
+/login - 登录 Gmail
+/new - 查看未读邮件
+/search 关键词 - 搜索邮件
+/logout - 退出登录
+
+*搜索技巧：*
+• \\\`/search 会议\\\` - 搜索包含"会议"的邮件
+• \\\`/search from:test@qq.com\\\` - 搜索指定发件人
+• \\\`/search after:2024/01/01\\\` - 搜索某日期后的邮件
+• \\\`/search has:attachment\\\` - 搜索有附件的邮件
+
+点击下方按钮快速操作 👇\`;
+
+  await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
+    chat_id: chatId,
+    text,
+    parse_mode: 'Markdown',
+    reply_markup: keyboard
+  });
+}
+
+async function sendLoginLink(chatId, userId, origin, env) {
+  await env.USER_TOKENS.put('worker_origin', origin);
+  
+  const nonce = crypto.randomUUID();
+  await env.USER_TOKENS.put(\`nonce:\${userId}\`, nonce, { expirationTtl: 600 });
+
+  const state = btoa(JSON.stringify({ userId, nonce }));
+  
+  const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+  authUrl.searchParams.set('client_id', env.GOOGLE_CLIENT_ID);
+  authUrl.searchParams.set('redirect_uri', \`\${origin}/oauth/callback\`);
+  authUrl.searchParams.set('response_type', 'code');
+  authUrl.searchParams.set('scope', GMAIL_SCOPES);
+  authUrl.searchParams.set('access_type', 'offline');
+  authUrl.searchParams.set('prompt', 'consent');
+  authUrl.searchParams.set('state', state);
+
+  const keyboard = {
+    inline_keyboard: [[
+      { text: '🔐 点击登录 Gmail', url: authUrl.toString() }
+    ]]
+  };
+
+  await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
+    chat_id: chatId,
+    text: '请点击下方按钮登录 Gmail\\n\\n🔒 使用 Google 官方授权，仅获取邮件读取权限',
+    reply_markup: keyboard
+  });
+}
+
+async function handleLogout(chatId, userId, env) {
+  await env.USER_TOKENS.delete(\`token:\${userId}\`);
+  await sendMessage(chatId, '✅ 已退出登录，Token 已删除\\n\\n使用 /login 重新登录', env);
+}
+
+async function handleGetMails(chatId, userId, query, env) {
+  const tokenData = await getValidToken(userId, env);
+  if (!tokenData) {
+    await sendMessage(chatId, '⚠️ 未登录或登录已过期\\n\\n请使用 /login 登录', env);
+    return;
+  }
+
+  const loadingMsg = await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
+    chat_id: chatId,
+    text: '🔍 正在查询邮件...'
+  });
+
+  try {
+    const listUrl = new URL('https://gmail.googleapis.com/gmail/v1/users/me/messages');
+    listUrl.searchParams.set('q', query);
+    listUrl.searchParams.set('maxResults', MAX_EMAILS.toString());
+
+    const listResp = await fetch(listUrl, {
+      headers: { Authorization: \`Bearer \${tokenData.access_token}\` }
+    });
+
+    if (!listResp.ok) {
+      const error = await listResp.json();
+      throw new Error(error.error?.message || 'API 请求失败');
+    }
+
+    const listData = await listResp.json();
+    const messages = listData.messages || [];
+
+    await telegramAPI(env.BOT_TOKEN, 'deleteMessage', {
+      chat_id: chatId,
+      message_id: loadingMsg.result.message_id
+    });
+
+    if (messages.length === 0) {
+      await sendMessage(chatId, \`📭 没有找到匹配的邮件\\n\\n搜索条件: \\\`\${query}\\\`\`, env, 'Markdown');
+      return;
+    }
+
+    await sendMessage(chatId, \`📬 找到 \${messages.length} 封邮件（搜索: \\\`\${query}\\\`）\`, env, 'Markdown');
+
+    for (const msg of messages) {
+      await sendMailDetail(chatId, msg.id, tokenData.access_token, env, false);
+    }
+  } catch (error) {
+    console.error('Get mails error:', error);
+    await telegramAPI(env.BOT_TOKEN, 'deleteMessage', {
+      chat_id: chatId,
+      message_id: loadingMsg.result.message_id
+    }).catch(() => {});
+    await sendMessage(chatId, \`❌ 查询失败: \${error.message}\`, env);
+  }
+}
+
+async function sendMailDetail(chatId, messageId, accessToken, env, showFull = false) {
+  const detailUrl = \`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${messageId}?format=full\`;
+  const detailResp = await fetch(detailUrl, {
+    headers: { Authorization: \`Bearer \${accessToken}\` }
+  });
+
+  if (!detailResp.ok) return;
+
+  const mail = await detailResp.json();
+  const headers = mail.payload?.headers || [];
+  
+  const getHeader = (name) => headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value || '';
+  
+  const from = getHeader('From');
+  const subject = getHeader('Subject') || '(无主题)';
+  const date = getHeader('Date');
+  const isUnread = mail.labelIds?.includes('UNREAD');
+
+  // 解析发件人
+  let fromName = from;
+  let fromEmail = from;
+  const emailMatch = from.match(/[\\w.-]+@[\\w.-]+\\.\\w+/);
+  if (emailMatch) {
+    fromEmail = emailMatch[0];
+    fromName = from.replace(/[<>]/g, '').replace(emailMatch[0], '').replace(/"/g, '').trim() || fromEmail;
+  }
+
+  // 格式化时间
+  let dateStr = '';
+  try {
+    const d = new Date(date);
+    dateStr = d.toLocaleString('zh-CN', { 
+      month: '2-digit', 
+      day: '2-digit', 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  } catch {
+    dateStr = date;
+  }
+
+  // 提取邮件正文
+  const fullContent = extractEmailContent(mail.payload);
+  const content = showFull ? fullContent : (fullContent.length > PREVIEW_LENGTH ? fullContent.substring(0, PREVIEW_LENGTH) + '\\n\\n... (点击"查看完整"显示全部)' : fullContent);
+
+  // 检测附件
+  const attachments = detectAttachments(mail.payload);
+
+  // 构建消息
+  let text = \`\${isUnread ? '🔵 未读' : '⚪️ 已读'} | \${subject}\\n\`;
+  text += \`\${'─'.repeat(20)}\\n\`;
+  text += \`👤 发件人: \${fromName}\\n\`;
+  if (fromName !== fromEmail) {
+    text += \`📧 邮箱: \${fromEmail}\\n\`;
+  }
+  text += \`🕐 时间: \${dateStr}\\n\`;
+  
+  if (attachments.length > 0) {
+    text += \`📎 附件 (\${attachments.length}): \${attachments.map(a => a.name).join(', ')}\\n\`;
+  }
+  
+  text += \`\${'─'.repeat(20)}\\n\`;
+  text += \`📄 正文:\\n\\n\${content}\`;
+
+  // 构建按钮 - 第一行显示主要操作，第二行显示"更多"展开按钮
+  const buttons = [];
+  
+  if (isUnread) {
+    buttons.push([{ text: '✅ 标记已读', callback_data: \`read:\${messageId}\` }]);
+  }
+  
+  // 更多操作按钮
+  const moreButtons = [];
+  if (!showFull && fullContent.length > PREVIEW_LENGTH) {
+    moreButtons.push({ text: '📖 查看完整', callback_data: \`full:\${messageId}\` });
+  }
+  moreButtons.push({ text: '🗑️ 删除邮件', callback_data: \`delete:\${messageId}\` });
+  moreButtons.push({ text: '⭐ 加星标', callback_data: \`star:\${messageId}\` });
+  
+  buttons.push(moreButtons);
+
+  const keyboard = { inline_keyboard: buttons };
+
+  try {
+    await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
+      chat_id: chatId,
+      text,
+      reply_markup: keyboard
+    });
+  } catch (e) {
+    const simpleText = \`\${isUnread ? '🔵' : '⚪️'} \${subject}\\n\\n👤 \${fromName}\\n📧 \${fromEmail}\\n🕐 \${dateStr}\\n\\n(邮件内容包含特殊字符，请在 Gmail 中查看)\`;
+    await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
+      chat_id: chatId,
+      text: simpleText,
+      reply_markup: keyboard
+    });
+  }
+}
+
+// ==================== 回调查询处理 ====================
+async function handleCallbackQuery(query, env, origin) {
+  const chatId = query.message.chat.id;
+  const userId = query.from.id.toString();
+  const data = query.data;
+  const messageId = query.message.message_id;
+
+  // 处理动作按钮
+  if (data.startsWith('action:')) {
+    const action = data.split(':')[1];
+    await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', { callback_query_id: query.id });
+    
+    switch (action) {
+      case 'login':
+        const savedOrigin = await env.USER_TOKENS.get('worker_origin');
+        if (savedOrigin) {
+          await sendLoginLink(chatId, userId, savedOrigin, env);
+        } else {
+          await sendMessage(chatId, '请发送 /login 命令登录', env);
+        }
+        break;
+      case 'new':
+        await handleGetMails(chatId, userId, 'is:unread', env);
+        break;
+      case 'search_help':
+        await sendMessage(chatId, '请发送 /search 关键词 进行搜索\\n\\n例如：/search 会议', env);
+        break;
+      case 'logout':
+        await handleLogout(chatId, userId, env);
+        break;
+    }
+    return;
+  }
+
+  // 获取 Token
+  const tokenData = await getValidToken(userId, env);
+  if (!tokenData) {
+    await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', {
+      callback_query_id: query.id,
+      text: '登录已过期，请重新 /login'
+    });
+    return;
+  }
+
+  // 查看完整邮件
+  if (data.startsWith('full:')) {
+    const mailId = data.split(':')[1];
+    await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', { 
+      callback_query_id: query.id,
+      text: '正在加载完整内容...'
+    });
+    
+    // 删除当前消息，发送完整版
+    await telegramAPI(env.BOT_TOKEN, 'deleteMessage', {
+      chat_id: chatId,
+      message_id: messageId
+    });
+    
+    await sendMailDetail(chatId, mailId, tokenData.access_token, env, true);
+    return;
+  }
+
+  // 标记已读
+  if (data.startsWith('read:')) {
+    const mailId = data.split(':')[1];
+    try {
+      await fetch(\`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${mailId}/modify\`, {
+        method: 'POST',
+        headers: {
+          Authorization: \`Bearer \${tokenData.access_token}\`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ removeLabelIds: ['UNREAD'] })
+      });
+
+      const newText = query.message.text.replace('🔵 未读', '⚪️ 已读');
+      const newButtons = query.message.reply_markup.inline_keyboard.filter(row => 
+        !row.some(btn => btn.callback_data?.startsWith('read:'))
+      );
+      
+      await telegramAPI(env.BOT_TOKEN, 'editMessageText', {
+        chat_id: chatId,
+        message_id: messageId,
+        text: newText + '\\n\\n✅ 已标记为已读',
+        reply_markup: { inline_keyboard: newButtons }
+      });
+
+      await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', {
+        callback_query_id: query.id,
+        text: '✅ 已标记为已读'
+      });
+    } catch (error) {
+      await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', {
+        callback_query_id: query.id,
+        text: '操作失败: ' + error.message
+      });
+    }
+    return;
+  }
+
+  // 删除邮件
+  if (data.startsWith('delete:')) {
+    const mailId = data.split(':')[1];
+    try {
+      await fetch(\`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${mailId}/trash\`, {
+        method: 'POST',
+        headers: { Authorization: \`Bearer \${tokenData.access_token}\` }
+      });
+
+      await telegramAPI(env.BOT_TOKEN, 'editMessageText', {
+        chat_id: chatId,
+        message_id: messageId,
+        text: '🗑️ 邮件已移至垃圾箱'
+      });
+
+      await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', {
+        callback_query_id: query.id,
+        text: '🗑️ 已删除'
+      });
+    } catch (error) {
+      await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', {
+        callback_query_id: query.id,
+        text: '删除失败'
+      });
+    }
+    return;
+  }
+
+  // 加星标
+  if (data.startsWith('star:')) {
+    const mailId = data.split(':')[1];
+    try {
+      await fetch(\`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${mailId}/modify\`, {
+        method: 'POST',
+        headers: {
+          Authorization: \`Bearer \${tokenData.access_token}\`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ addLabelIds: ['STARRED'] })
+      });
+
+      await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', {
+        callback_query_id: query.id,
+        text: '⭐ 已添加星标'
+      });
+    } catch (error) {
+      await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', {
+        callback_query_id: query.id,
+        text: '操作失败'
+      });
+    }
+    return;
+  }
+}
+
+// ==================== 工具函数 ====================
+async function getValidToken(userId, env) {
+  const raw = await env.USER_TOKENS.get(\`token:\${userId}\`);
+  if (!raw) return null;
+
+  let tokenData;
+  try {
+    tokenData = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+
+  if (Date.now() > tokenData.expiry - TOKEN_REFRESH_BUFFER) {
+    if (!tokenData.refresh_token) return null;
+
+    try {
+      const refreshResp = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: env.GOOGLE_CLIENT_ID,
+          client_secret: env.GOOGLE_CLIENT_SECRET,
+          refresh_token: tokenData.refresh_token,
+          grant_type: 'refresh_token'
+        })
+      });
+
+      const newToken = await refreshResp.json();
+      if (!newToken.access_token) return null;
+
+      tokenData.access_token = newToken.access_token;
+      tokenData.expiry = Date.now() + (newToken.expires_in * 1000);
+
+      await env.USER_TOKENS.put(\`token:\${userId}\`, JSON.stringify(tokenData));
+    } catch {
+      return null;
+    }
+  }
+
+  return tokenData;
+}
+
+function extractEmailContent(payload) {
+  let bodyData = null;
+
+  function findTextPart(part) {
+    if (part.mimeType === 'text/plain' && part.body?.data) {
+      return part.body.data;
+    }
+    if (part.parts) {
+      for (const p of part.parts) {
+        const result = findTextPart(p);
+        if (result) return result;
+      }
+    }
+    return null;
+  }
+
+  bodyData = findTextPart(payload);
+  
+  if (!bodyData) {
+    function findHtmlPart(part) {
+      if (part.mimeType === 'text/html' && part.body?.data) {
+        return part.body.data;
+      }
+      if (part.parts) {
+        for (const p of part.parts) {
+          const result = findHtmlPart(p);
+          if (result) return result;
+        }
+      }
+      return null;
+    }
+    bodyData = findHtmlPart(payload);
+  }
+
+  if (!bodyData && payload.body?.data) {
+    bodyData = payload.body.data;
+  }
+
+  if (!bodyData) return '(无内容)';
+
+  try {
+    const base64 = bodyData.replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = decodeBase64(base64);
+    
+    let text = decoded;
+    
+    // 移除 style 和 script 标签
+    text = text.replace(/<style[^>]*>[\\s\\S]*?<\\/style>/gi, '');
+    text = text.replace(/<script[^>]*>[\\s\\S]*?<\\/script>/gi, '');
+    
+    // 转换换行标签
+    text = text.replace(/<br\\s*\\/?>/gi, '\\n');
+    text = text.replace(/<\\/p>/gi, '\\n');
+    text = text.replace(/<\\/div>/gi, '\\n');
+    text = text.replace(/<\\/tr>/gi, '\\n');
+    text = text.replace(/<\\/li>/gi, '\\n');
+    
+    // 移除 HTML 标签
+    text = text.replace(/<[^>]*>/g, '');
+    
+    // 解码 HTML 实体
+    text = text.replace(/&nbsp;/gi, ' ');
+    text = text.replace(/&amp;/gi, '&');
+    text = text.replace(/&lt;/gi, '<');
+    text = text.replace(/&gt;/gi, '>');
+    text = text.replace(/&quot;/gi, '"');
+    text = text.replace(/&#39;/gi, "'");
+    text = text.replace(/&hellip;/gi, '...');
+    text = text.replace(/&#\\d+;/g, '');
+    
+    // 清理空白
+    text = text.replace(/[ \\t]+/g, ' ');
+    text = text.replace(/\\n\\s*\\n/g, '\\n\\n');
+    text = text.replace(/^\\s+|\\s+$/g, '');
+    
+    if (text.length > MAX_CONTENT_LENGTH) {
+      text = text.substring(0, MAX_CONTENT_LENGTH) + '\\n\\n... (内容过长，已截断)';
+    }
+    
+    return text || '(无内容)';
+  } catch (e) {
+    return '(无法解析内容)';
+  }
+}
+
+function detectAttachments(payload) {
+  const attachments = [];
+
+  function scan(part) {
+    if (part.filename && part.filename.trim() && part.body?.attachmentId) {
+      attachments.push({
+        name: part.filename,
+        mimeType: part.mimeType,
+        size: part.body.size
+      });
+    }
+    if (part.parts) {
+      part.parts.forEach(scan);
+    }
+  }
+
+  scan(payload);
+  return attachments;
+}
+
+function decodeBase64(base64) {
+  try {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new TextDecoder('utf-8').decode(bytes);
+  } catch {
+    return atob(base64);
+  }
+}
+
+async function telegramAPI(token, method, params = {}) {
+  const resp = await fetch(\`https://api.telegram.org/bot\${token}/\${method}\`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params)
+  });
+  return resp.json();
+}
+
+async function sendMessage(chatId, text, env, parseMode = null) {
+  const params = { chat_id: chatId, text };
+  if (parseMode) params.parse_mode = parseMode;
+  return telegramAPI(env.BOT_TOKEN, 'sendMessage', params);
+}
+
+function jsonResponse(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json' }
+  });
+}
+
+function generateHomePage() {
+  return \`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gmail Telegram Bot</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: system-ui, sans-serif; 
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+    .container { text-align: center; padding: 40px; }
+    h1 { font-size: 3rem; margin-bottom: 1rem; }
+    .emoji { font-size: 4rem; margin-bottom: 1rem; }
+    p { color: #94a3b8; font-size: 1.1rem; margin-bottom: 2rem; }
+    .status { 
+      background: #22c55e20; 
+      border: 1px solid #22c55e50;
+      padding: 12px 24px;
+      border-radius: 50px;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="emoji">📧🤖</div>
+    <h1>Gmail Bot</h1>
+    <p>Telegram Bot 正在运行中</p>
+    <div class="status">✅ 服务正常</div>
+  </div>
+</body>
+</html>\`;
+}`;
+
+    // 将代码填充到页面
+    document.getElementById('workerCode').textContent = workerCode;
+    
+    // 重新运行 Prism 高亮
+    if (typeof Prism !== 'undefined') {
+      Prism.highlightAll();
+    }
+
+    // 复制代码功能
+    document.getElementById('copyBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('copyBtn');
+      const icon = document.getElementById('copyIcon');
+      const text = document.getElementById('copyText');
+      
+      try {
+        await navigator.clipboard.writeText(workerCode);
+        icon.textContent = '✅';
+        text.textContent = '已复制!';
+        btn.classList.add('bg-green-600');
+        btn.classList.remove('bg-purple-600');
+        
+        setTimeout(() => {
+          icon.textContent = '📋';
+          text.textContent = '复制代码';
+          btn.classList.remove('bg-green-600');
+          btn.classList.add('bg-purple-600');
+        }, 2000);
+      } catch (err) {
+        const textarea = document.createElement('textarea');
+        textarea.value = workerCode;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        
+        icon.textContent = '✅';
+        text.textContent = '已复制!';
+      }
+    });
+  </script>
+</body>
+</html>
