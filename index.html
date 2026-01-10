@@ -80,8 +80,8 @@
         </div>
         <div class="bg-gray-800 rounded-xl p-5 border border-gray-700">
           <div class="text-2xl mb-2">✅</div>
-          <h3 class="font-semibold mb-1">邮件操作</h3>
-          <p class="text-gray-400 text-sm">标记已读/未读、删除邮件、加星标等操作</p>
+          <h3 class="font-semibold mb-1">批量操作</h3>
+          <p class="text-gray-400 text-sm">一键全部已读、单封标记、删除、加星标</p>
         </div>
         <div class="bg-gray-800 rounded-xl p-5 border border-gray-700">
           <div class="text-2xl mb-2">👤</div>
@@ -99,37 +99,30 @@
           <p class="text-gray-400 text-sm">使用 Google OAuth 2.0，无需提供账号密码</p>
         </div>
         <div class="bg-gray-800 rounded-xl p-5 border border-gray-700">
-          <div class="text-2xl mb-2">🔄</div>
-          <h3 class="font-semibold mb-1">自动刷新 Token</h3>
-          <p class="text-gray-400 text-sm">Token 过期自动刷新，无需重复登录</p>
+          <div class="text-2xl mb-2">⌨️</div>
+          <h3 class="font-semibold mb-1">快捷键盘</h3>
+          <p class="text-gray-400 text-sm">输入框下方常驻按钮，无需记忆命令</p>
         </div>
       </div>
     </section>
 
-    <!-- Commands -->
+    <!-- Button Menu -->
     <section class="mb-16">
       <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
-        <span class="text-purple-400">💬</span> 支持的命令
+        <span class="text-purple-400">⌨️</span> 快捷按钮菜单
       </h2>
-      <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
-        <table class="w-full">
-          <thead class="bg-gray-700/50">
-            <tr>
-              <th class="text-left px-5 py-3 font-semibold">命令</th>
-              <th class="text-left px-5 py-3 font-semibold">说明</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-700">
-            <tr><td class="px-5 py-3 font-mono text-purple-400">/start</td><td class="px-5 py-3 text-gray-300">显示欢迎消息和功能菜单</td></tr>
-            <tr><td class="px-5 py-3 font-mono text-purple-400">/login</td><td class="px-5 py-3 text-gray-300">登录 Gmail（显示授权按钮）</td></tr>
-            <tr><td class="px-5 py-3 font-mono text-purple-400">/new</td><td class="px-5 py-3 text-gray-300">获取未读邮件列表（支持分页）</td></tr>
-            <tr><td class="px-5 py-3 font-mono text-purple-400">/today</td><td class="px-5 py-3 text-gray-300">今日收到的邮件</td></tr>
-            <tr><td class="px-5 py-3 font-mono text-purple-400">/stats</td><td class="px-5 py-3 text-gray-300">邮箱统计信息</td></tr>
-            <tr><td class="px-5 py-3 font-mono text-purple-400">/search 关键词</td><td class="px-5 py-3 text-gray-300">搜索邮件（支持 Gmail 语法）</td></tr>
-            <tr><td class="px-5 py-3 font-mono text-purple-400">/logout</td><td class="px-5 py-3 text-gray-300">退出登录，删除 Token</td></tr>
-            <tr><td class="px-5 py-3 font-mono text-purple-400">/help</td><td class="px-5 py-3 text-gray-300">显示帮助信息</td></tr>
-          </tbody>
-        </table>
+      <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <p class="text-gray-300 mb-4">Bot 使用输入框下方的快捷按钮，无需输入命令：</p>
+        <div class="bg-gray-900 rounded-lg p-4 max-w-md mx-auto">
+          <div class="grid grid-cols-3 gap-2 text-center text-sm">
+            <div class="bg-gray-700 rounded py-2">📬 未读邮件</div>
+            <div class="bg-gray-700 rounded py-2">📅 今日邮件</div>
+            <div class="bg-gray-700 rounded py-2">📊 统计</div>
+            <div class="bg-gray-700 rounded py-2">🔍 搜索</div>
+            <div class="bg-gray-700 rounded py-2">✅ 全部已读</div>
+            <div class="bg-gray-700 rounded py-2">⚙️ 设置</div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -269,9 +262,9 @@
               <h3 class="font-bold text-lg mb-2 text-green-400">开始使用！</h3>
               <ol class="list-decimal list-inside text-gray-300 space-y-1 ml-1">
                 <li>在 Telegram 找到你的 Bot</li>
-                <li>发送 <code class="bg-gray-700 px-2 py-0.5 rounded">/start</code> 查看菜单</li>
-                <li>发送 <code class="bg-gray-700 px-2 py-0.5 rounded">/login</code> 登录 Gmail</li>
-                <li>发送 <code class="bg-gray-700 px-2 py-0.5 rounded">/new</code> 查看未读邮件</li>
+                <li>发送任意消息或点击 <code class="bg-gray-700 px-2 py-0.5 rounded">开始</code></li>
+                <li>使用底部按钮菜单操作</li>
+                <li>点击 <code class="bg-gray-700 px-2 py-0.5 rounded">🔐 登录</code> 绑定 Gmail</li>
               </ol>
             </div>
           </div>
@@ -383,9 +376,14 @@
         </details>
         
         <details class="bg-gray-800 rounded-xl border border-gray-700">
-          <summary class="px-5 py-4 cursor-pointer font-semibold">在中国大陆无法授权</summary>
+          <summary class="px-5 py-4 cursor-pointer font-semibold">底部按钮不显示</summary>
           <div class="px-5 pb-4 text-gray-300">
-            <p>首次授权需要访问 Google，可能需要科学上网。授权成功后，Bot 调用 Gmail API 是通过 Cloudflare Workers 发起的，不受本地网络限制。</p>
+            <p>ReplyKeyboard 按钮需要 Bot 发送一次消息后才会显示。尝试：</p>
+            <ol class="list-decimal list-inside mt-2 space-y-1">
+              <li>向 Bot 发送任意消息</li>
+              <li>或发送 /start 命令</li>
+              <li>按钮会出现在输入框上方</li>
+            </ol>
           </div>
         </details>
 
@@ -394,7 +392,7 @@
           <div class="px-5 pb-4 text-gray-300">
             <p>可能原因：</p>
             <ol class="list-decimal list-inside mt-2 space-y-1">
-              <li>用户撤销了授权 → 需要重新 /login</li>
+              <li>用户撤销了授权 → 需要重新登录</li>
               <li>Refresh Token 过期（6个月未使用）→ 重新登录</li>
               <li>OAuth 凭证被删除或更改 → 检查 Google Console</li>
             </ol>
@@ -426,7 +424,7 @@
           </div>
         </div>
         <div class="mt-6 text-center text-gray-400 text-sm">
-          <p>Cloudflare KV 存储用户 Token 和分页状态，Worker 处理 Webhook 并调用 Gmail API</p>
+          <p>Cloudflare KV 存储用户 Token，Worker 处理 Webhook 并调用 Gmail API</p>
         </div>
       </div>
     </section>
@@ -436,25 +434,24 @@
   <footer class="bg-gray-800/50 border-t border-gray-700 py-8 px-4">
     <div class="max-w-5xl mx-auto text-center text-gray-400">
       <p>Gmail Telegram Bot - 基于 Cloudflare Workers</p>
-      <p class="mt-2 text-sm">完全免费 · 安全可靠 · 分页浏览</p>
+      <p class="mt-2 text-sm">完全免费 · 安全可靠 · 按钮操作</p>
     </div>
   </footer>
 
   <script>
-    // Worker 代码 - 完整版本（支持分页）
+    // Worker 代码
     const workerCode = `/**
  * Gmail Telegram Bot - Cloudflare Worker
  * 功能：通过 Telegram Bot 安全访问 Gmail 邮箱
- * 版本：3.0（支持分页浏览）
+ * 特性：按钮菜单、分页浏览、批量已读
  */
 
-// ==================== 配置常量 ====================
 const GMAIL_SCOPES = [
   'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/gmail.modify'
 ].join(' ');
 
-const PAGE_SIZE = 5;  // 每页显示邮件数
+const PAGE_SIZE = 5;
 const MAX_CONTENT_LENGTH = 3500;
 const TOKEN_REFRESH_BUFFER = 60000;
 const MAX_ATTACHMENT_SIZE = 15 * 1024 * 1024;
@@ -507,25 +504,16 @@ async function handleSetup(url, env) {
   const webhookUrl = \`\${url.origin}/webhook?secret=\${env.BOT_SECRET}\`;
   const results = [];
 
+  // 设置 Webhook
   const webhookResp = await telegramAPI(env.BOT_TOKEN, 'setWebhook', { 
     url: webhookUrl,
     allowed_updates: ['message', 'callback_query']
   });
   results.push(\`Webhook: \${webhookResp.ok ? '✅ 成功' : '❌ 失败'}\`);
 
-  const commands = [
-    { command: 'start', description: '🏠 开始使用' },
-    { command: 'login', description: '🔐 登录 Gmail' },
-    { command: 'new', description: '📬 查看未读邮件' },
-    { command: 'today', description: '📅 今日邮件' },
-    { command: 'stats', description: '📊 邮箱统计' },
-    { command: 'search', description: '🔍 搜索邮件' },
-    { command: 'logout', description: '🚪 退出登录' },
-    { command: 'help', description: '❓ 帮助信息' }
-  ];
-  
-  const commandsResp = await telegramAPI(env.BOT_TOKEN, 'setMyCommands', { commands });
-  results.push(\`命令菜单: \${commandsResp.ok ? '✅ 成功' : '❌ 失败'}\`);
+  // 删除命令菜单（使用按钮代替）
+  await telegramAPI(env.BOT_TOKEN, 'deleteMyCommands', {});
+  results.push('命令菜单: ✅ 已清除（使用按钮菜单）');
 
   const meResp = await telegramAPI(env.BOT_TOKEN, 'getMe');
   if (meResp.ok) {
@@ -608,10 +596,11 @@ async function handleOAuthCallback(request, env) {
 
   await env.USER_TOKENS.delete(\`nonce:\${userId}\`);
 
+  // 发送成功消息到 Telegram
   await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
     chat_id: userId,
-    text: \`✅ *登录成功！*\\n\\n📧 已绑定: \\\`\${profile.emailAddress || 'Gmail'}\\\`\\n\\n发送 /new 查看未读邮件\`,
-    parse_mode: 'Markdown'
+    text: \`✅ 登录成功！\\n\\n📧 已绑定: \${profile.emailAddress || 'Gmail'}\\n\\n点击下方按钮开始使用\`,
+    reply_markup: getMainKeyboard()
   });
 
   return new Response(generateResultPage(true, profile.emailAddress), {
@@ -621,16 +610,12 @@ async function handleOAuthCallback(request, env) {
 
 // 生成结果页面
 function generateResultPage(success, message) {
-  const bgColor = success ? '#10b981' : '#ef4444';
-  const icon = success ? '✓' : '✕';
-  const title = success ? '授权成功！' : '授权失败';
-  
   return \`<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>\${title} - Gmail Bot</title>
+  <title>\${success ? '授权成功' : '授权失败'} - Gmail Bot</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -645,7 +630,7 @@ function generateResultPage(success, message) {
     }
     .card {
       background: rgba(255,255,255,0.1);
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(20px);
       border-radius: 24px;
       padding: 48px;
       text-align: center;
@@ -655,25 +640,33 @@ function generateResultPage(success, message) {
       box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
     }
     .icon {
-      width: 80px;
-      height: 80px;
-      background: \${bgColor};
+      width: 88px;
+      height: 88px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       margin: 0 auto 24px;
-      font-size: 40px;
-      font-weight: bold;
+      font-size: 44px;
+      \${success ? 'background: linear-gradient(135deg, #10b981, #059669);' : 'background: linear-gradient(135deg, #ef4444, #dc2626);'}
+      box-shadow: 0 10px 40px \${success ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'};
     }
-    h1 { font-size: 28px; margin-bottom: 16px; color: \${success ? '#34d399' : '#f87171'}; }
-    .message {
-      background: rgba(255,255,255,0.1);
-      padding: 12px 20px;
+    h1 { 
+      font-size: 28px; 
+      margin-bottom: 16px; 
+      background: linear-gradient(135deg, \${success ? '#34d399, #10b981' : '#f87171, #ef4444'});
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .email {
+      background: rgba(99,102,241,0.2);
+      border: 1px solid rgba(99,102,241,0.3);
+      padding: 12px 24px;
       border-radius: 12px;
       margin: 20px 0;
       font-size: 15px;
       color: #a5b4fc;
+      word-break: break-all;
     }
     .hint { color: #94a3b8; font-size: 14px; margin-bottom: 24px; }
     .btn {
@@ -681,21 +674,23 @@ function generateResultPage(success, message) {
       align-items: center;
       gap: 8px;
       padding: 14px 32px;
-      background: #0088cc;
+      background: linear-gradient(135deg, #0088cc, #0077b5);
       color: white;
       text-decoration: none;
       border-radius: 12px;
       font-weight: 600;
+      transition: transform 0.2s, box-shadow 0.2s;
     }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,136,204,0.3); }
   </style>
 </head>
 <body>
   <div class="card">
-    <div class="icon">\${icon}</div>
-    <h1>\${title}</h1>
-    <div class="message">\${success ? '📧 ' + message : message}</div>
-    <p class="hint">\${success ? '现在可以返回 Telegram 使用 /new 查看邮件' : '请返回 Telegram 重试'}</p>
-    <a href="https://t.me" class="btn">打开 Telegram</a>
+    <div class="icon">\${success ? '✓' : '✕'}</div>
+    <h1>\${success ? '授权成功！' : '授权失败'}</h1>
+    <div class="email">\${success ? '📧 ' + message : '❌ ' + message}</div>
+    <p class="hint">\${success ? '可以关闭此页面，返回 Telegram 使用' : '请返回 Telegram 重试'}</p>
+    <a href="https://t.me" class="btn">📱 打开 Telegram</a>
   </div>
 </body>
 </html>\`;
@@ -703,98 +698,122 @@ function generateResultPage(success, message) {
 
 // ==================== Bot 更新处理 ====================
 async function handleBotUpdate(update, env, origin) {
+  // 处理回调查询
   if (update.callback_query) {
     await handleCallbackQuery(update.callback_query, env, origin);
     return;
   }
 
-  if (!update.message?.text) return;
+  if (!update.message) return;
 
   const msg = update.message;
   const chatId = msg.chat.id;
   const userId = msg.from.id.toString();
-  const text = msg.text.trim();
+  const text = (msg.text || '').trim();
 
-  const [command, ...args] = text.split(/\\s+/);
-  const cmd = command.toLowerCase().replace(/^\\//, '').replace(/@.*$/, '');
+  // 保存 origin
+  await env.USER_TOKENS.put('worker_origin', origin);
 
-  switch (cmd) {
-    case 'start':
-    case 'help':
+  // 处理按钮文本
+  switch (text) {
+    case '/start':
+    case '🏠 主菜单':
       await sendWelcome(chatId, env);
       break;
-    case 'login':
-      await sendLoginLink(chatId, userId, origin, env);
-      break;
-    case 'logout':
-      await handleLogout(chatId, userId, env);
-      break;
-    case 'new':
-    case 'unread':
+    case '📬 未读邮件':
       await handleMailList(chatId, userId, 'is:unread', null, null, env);
       break;
-    case 'today':
+    case '📅 今日邮件':
       const today = new Date().toISOString().split('T')[0].replace(/-/g, '/');
       await handleMailList(chatId, userId, \`after:\${today}\`, null, null, env);
       break;
-    case 'stats':
+    case '📊 统计':
       await handleStats(chatId, userId, env);
       break;
-    case 'search':
-      const query = args.join(' ');
-      if (!query) {
-        await sendSearchHelp(chatId, env);
-      } else {
-        await handleMailList(chatId, userId, query, null, null, env);
-      }
+    case '🔍 搜索':
+      await sendSearchHelp(chatId, env);
       break;
+    case '✅ 全部已读':
+      await handleReadAll(chatId, userId, env);
+      break;
+    case '🔐 登录':
+      await sendLoginLink(chatId, userId, origin, env);
+      break;
+    case '🚪 退出':
+      await handleLogout(chatId, userId, env);
+      break;
+    default:
+      // 检查是否是搜索命令
+      if (text.startsWith('/search ')) {
+        const query = text.substring(8).trim();
+        if (query) {
+          await handleMailList(chatId, userId, query, null, null, env);
+        }
+      } else if (text.startsWith('/')) {
+        // 其他命令
+        const cmd = text.split(' ')[0].toLowerCase();
+        if (cmd === '/new' || cmd === '/unread') {
+          await handleMailList(chatId, userId, 'is:unread', null, null, env);
+        } else if (cmd === '/today') {
+          const today = new Date().toISOString().split('T')[0].replace(/-/g, '/');
+          await handleMailList(chatId, userId, \`after:\${today}\`, null, null, env);
+        } else if (cmd === '/stats') {
+          await handleStats(chatId, userId, env);
+        } else if (cmd === '/login') {
+          await sendLoginLink(chatId, userId, origin, env);
+        } else if (cmd === '/logout') {
+          await handleLogout(chatId, userId, env);
+        } else if (cmd === '/readall') {
+          await handleReadAll(chatId, userId, env);
+        } else {
+          await sendWelcome(chatId, env);
+        }
+      } else {
+        // 非命令文本，可能是搜索关键词
+        await sendWelcome(chatId, env);
+      }
   }
 }
 
-// ==================== 命令处理函数 ====================
-async function sendWelcome(chatId, env) {
-  const keyboard = {
-    inline_keyboard: [
-      [
-        { text: '🔐 登录 Gmail', callback_data: 'action:login' },
-        { text: '📬 未读邮件', callback_data: 'action:new' }
-      ],
-      [
-        { text: '📅 今日邮件', callback_data: 'action:today' },
-        { text: '📊 邮箱统计', callback_data: 'action:stats' }
-      ],
-      [
-        { text: '🔍 搜索帮助', callback_data: 'action:search_help' },
-        { text: '🚪 退出登录', callback_data: 'action:logout' }
-      ]
-    ]
+// ==================== 主键盘 ====================
+function getMainKeyboard() {
+  return {
+    keyboard: [
+      [{ text: '📬 未读邮件' }, { text: '📅 今日邮件' }, { text: '📊 统计' }],
+      [{ text: '🔍 搜索' }, { text: '✅ 全部已读' }],
+      [{ text: '🔐 登录' }, { text: '🚪 退出' }, { text: '🏠 主菜单' }]
+    ],
+    resize_keyboard: true,
+    persistent: true
   };
+}
 
+// ==================== 发送欢迎消息 ====================
+async function sendWelcome(chatId, env) {
   const text = \`🤖 *Gmail Bot*
 
 欢迎使用 Gmail 邮件助手！
 
-*可用命令：*
-/new - 查看未读邮件（分页浏览）
-/today - 今日收到的邮件
-/stats - 邮箱统计信息
-/search 关键词 - 搜索邮件
-/login - 登录 Gmail
-/logout - 退出登录
+📬 *未读邮件* - 查看未读邮件
+📅 *今日邮件* - 今天收到的邮件  
+📊 *统计* - 邮箱统计信息
+🔍 *搜索* - 搜索邮件
+✅ *全部已读* - 一键标记全部已读
+🔐 *登录* - 绑定 Gmail 账号
+🚪 *退出* - 退出登录
 
-点击下方按钮快速操作 👇\`;
+使用下方按钮操作 👇\`;
 
   await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
     chat_id: chatId,
     text,
     parse_mode: 'Markdown',
-    reply_markup: keyboard
+    reply_markup: getMainKeyboard()
   });
 }
 
+// ==================== 登录链接 ====================
 async function sendLoginLink(chatId, userId, origin, env) {
-  await env.USER_TOKENS.put('worker_origin', origin);
-  
   const nonce = crypto.randomUUID();
   await env.USER_TOKENS.put(\`nonce:\${userId}\`, nonce, { expirationTtl: 600 });
 
@@ -822,28 +841,42 @@ async function sendLoginLink(chatId, userId, origin, env) {
   });
 }
 
+// ==================== 退出登录 ====================
 async function handleLogout(chatId, userId, env) {
   await env.USER_TOKENS.delete(\`token:\${userId}\`);
-  await sendMessage(chatId, '✅ 已退出登录\\n\\n使用 /login 重新登录', env);
+  await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
+    chat_id: chatId,
+    text: '✅ 已退出登录\\n\\n点击 🔐 登录 重新绑定',
+    reply_markup: getMainKeyboard()
+  });
 }
 
+// ==================== 搜索帮助 ====================
 async function sendSearchHelp(chatId, env) {
   const keyboard = {
     inline_keyboard: [
       [
-        { text: '📬 未读邮件', callback_data: 'search:is:unread' },
-        { text: '⭐ 星标邮件', callback_data: 'search:is:starred' }
+        { text: '📬 未读', callback_data: 'search:is:unread' },
+        { text: '⭐ 星标', callback_data: 'search:is:starred' },
+        { text: '📎 附件', callback_data: 'search:has:attachment' }
       ],
       [
-        { text: '📎 有附件', callback_data: 'search:has:attachment' },
-        { text: '📆 本周邮件', callback_data: 'search:newer_than:7d' }
+        { text: '📆 本周', callback_data: 'search:newer_than:7d' },
+        { text: '📅 本月', callback_data: 'search:newer_than:30d' }
       ]
     ]
   };
 
   await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
     chat_id: chatId,
-    text: \`🔍 *搜索帮助*\\n\\n*用法：* /search 关键词\\n\\n*示例：*\\n• \\\`/search 会议\\\` - 搜索内容\\n• \\\`/search from:test@qq.com\\\` - 按发件人\\n• \\\`/search subject:报告\\\` - 按主题\\n• \\\`/search after:2024/01/01\\\` - 按日期\\n\\n或点击快捷按钮：\`,
+    text: \`🔍 *搜索邮件*
+
+直接发送搜索内容，如：
+• \\\`/search 会议\\\` - 搜索内容
+• \\\`/search from:test@qq.com\\\` - 按发件人
+• \\\`/search subject:报告\\\` - 按主题
+
+或点击快捷搜索：\`,
     parse_mode: 'Markdown',
     reply_markup: keyboard
   });
@@ -853,22 +886,15 @@ async function sendSearchHelp(chatId, env) {
 async function handleMailList(chatId, userId, query, pageToken, editMsgId, env) {
   const tokenData = await getValidToken(userId, env);
   if (!tokenData) {
-    await sendMessage(chatId, '⚠️ 请先 /login 登录', env);
+    await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
+      chat_id: chatId,
+      text: '⚠️ 请先点击 🔐 登录 绑定 Gmail',
+      reply_markup: getMainKeyboard()
+    });
     return;
   }
 
-  // 显示加载中（仅新消息时）
-  let loadingMsgId = null;
-  if (!editMsgId) {
-    const loadingMsg = await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
-      chat_id: chatId,
-      text: '🔍 正在查询...'
-    });
-    loadingMsgId = loadingMsg.result?.message_id;
-  }
-
   try {
-    // 获取邮件列表
     const listUrl = new URL('https://gmail.googleapis.com/gmail/v1/users/me/messages');
     listUrl.searchParams.set('q', query);
     listUrl.searchParams.set('maxResults', PAGE_SIZE.toString());
@@ -886,25 +912,20 @@ async function handleMailList(chatId, userId, query, pageToken, editMsgId, env) 
     const messages = listData.messages || [];
     const nextPageToken = listData.nextPageToken;
 
-    // 删除加载消息
-    if (loadingMsgId) {
-      await telegramAPI(env.BOT_TOKEN, 'deleteMessage', {
-        chat_id: chatId,
-        message_id: loadingMsgId
-      }).catch(() => {});
-    }
-
     if (messages.length === 0) {
-      const text = \`📭 没有找到邮件\\n\\n搜索: \\\`\${query}\\\`\`;
+      const text = \`📭 没有找到邮件\\n\\n搜索: \${query}\`;
       if (editMsgId) {
         await telegramAPI(env.BOT_TOKEN, 'editMessageText', {
           chat_id: chatId,
           message_id: editMsgId,
-          text,
-          parse_mode: 'Markdown'
+          text
         });
       } else {
-        await sendMessage(chatId, text, env, 'Markdown');
+        await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
+          chat_id: chatId,
+          text,
+          reply_markup: getMainKeyboard()
+        });
       }
       return;
     }
@@ -935,53 +956,49 @@ async function handleMailList(chatId, userId, query, pageToken, editMsgId, env) 
         
         summaries.push({
           id: msg.id,
-          from: from.substring(0, 18) + (from.length > 18 ? '..' : ''),
-          subject: (getHeader('Subject') || '(无主题)').substring(0, 25) + ((getHeader('Subject') || '').length > 25 ? '..' : ''),
+          from: from.substring(0, 20),
+          subject: (getHeader('Subject') || '(无主题)').substring(0, 28),
           date: dateStr,
           isUnread: mail.labelIds?.includes('UNREAD')
         });
       }
     }
 
-    // 构建消息文本
-    let text = \`📬 *邮件列表*  |  \${query}\\n\${'─'.repeat(28)}\\n\\n\`;
+    // 构建消息
+    let text = \`📬 *\${query}*\\n\${'─'.repeat(20)}\\n\\n\`;
     
     summaries.forEach((m, i) => {
-      text += \`\${m.isUnread ? '🔵' : '⚪️'} *\${i+1}.* \${m.subject}\\n\`;
-      text += \`    _\${m.from}_ · \${m.date}\\n\\n\`;
+      text += \`\${m.isUnread ? '🔵' : '⚪️'} *\${i+1}.* \${m.subject}\\n   \${m.from} · \${m.date}\\n\\n\`;
     });
 
     // 构建按钮
     const buttons = [];
     
-    // 邮件按钮（每行2个）
-    for (let i = 0; i < summaries.length; i += 2) {
+    // 邮件按钮
+    for (let i = 0; i < summaries.length; i += 3) {
       const row = [];
-      row.push({ text: \`\${summaries[i].isUnread ? '🔵' : '📧'} \${i+1}. 查看\`, callback_data: \`mail:\${summaries[i].id}\` });
-      if (summaries[i+1]) {
-        row.push({ text: \`\${summaries[i+1].isUnread ? '🔵' : '📧'} \${i+2}. 查看\`, callback_data: \`mail:\${summaries[i+1].id}\` });
+      for (let j = i; j < Math.min(i + 3, summaries.length); j++) {
+        row.push({ 
+          text: \`\${summaries[j].isUnread ? '🔵' : '📧'} \${j+1}\`, 
+          callback_data: \`mail:\${summaries[j].id}\` 
+        });
       }
       buttons.push(row);
     }
 
     // 分页按钮
     const navRow = [];
-    if (pageToken) {
-      // 存储当前页信息以便返回
-      navRow.push({ text: '🏠 首页', callback_data: \`list:\${query.substring(0,30)}\` });
-    }
     if (nextPageToken) {
-      // 存储下一页 token
       const pageId = Date.now().toString(36);
       await env.USER_TOKENS.put(\`page:\${userId}:\${pageId}\`, JSON.stringify({ query, token: nextPageToken }), { expirationTtl: 3600 });
       navRow.push({ text: '➡️ 下一页', callback_data: \`page:\${pageId}\` });
     }
     if (navRow.length > 0) buttons.push(navRow);
 
-    // 刷新按钮
+    // 操作按钮
     buttons.push([
-      { text: '🔄 刷新', callback_data: \`list:\${query.substring(0,30)}\` },
-      { text: '🏠 菜单', callback_data: 'action:menu' }
+      { text: '🔄 刷新', callback_data: \`refresh:\${query.substring(0,40)}\` },
+      { text: '✅ 全部已读', callback_data: 'action:readall' }
     ]);
 
     const keyboard = { inline_keyboard: buttons };
@@ -1004,18 +1021,22 @@ async function handleMailList(chatId, userId, query, pageToken, editMsgId, env) 
     }
   } catch (error) {
     console.error('Mail list error:', error);
-    if (loadingMsgId) {
-      await telegramAPI(env.BOT_TOKEN, 'deleteMessage', { chat_id: chatId, message_id: loadingMsgId }).catch(() => {});
-    }
-    await sendMessage(chatId, \`❌ 查询失败: \${error.message}\`, env);
+    await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
+      chat_id: chatId,
+      text: \`❌ 获取失败: \${error.message}\`,
+      reply_markup: getMainKeyboard()
+    });
   }
 }
 
 // ==================== 邮件详情 ====================
-async function sendMailDetail(chatId, mailId, accessToken, env, editMsgId = null) {
+async function sendMailDetail(chatId, userId, mailId, env, editMsgId = null) {
+  const tokenData = await getValidToken(userId, env);
+  if (!tokenData) return;
+
   const detailResp = await fetch(
     \`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${mailId}?format=full\`,
-    { headers: { Authorization: \`Bearer \${accessToken}\` } }
+    { headers: { Authorization: \`Bearer \${tokenData.access_token}\` } }
   );
   
   if (!detailResp.ok) return;
@@ -1029,7 +1050,6 @@ async function sendMailDetail(chatId, mailId, accessToken, env, editMsgId = null
   const date = getHeader('Date');
   const isUnread = mail.labelIds?.includes('UNREAD');
 
-  // 解析发件人
   let fromName = from, fromEmail = from;
   const emailMatch = from.match(/[\\w.-]+@[\\w.-]+\\.\\w+/);
   if (emailMatch) {
@@ -1037,58 +1057,45 @@ async function sendMailDetail(chatId, mailId, accessToken, env, editMsgId = null
     fromName = from.replace(/[<>]/g, '').replace(emailMatch[0], '').replace(/"/g, '').trim() || fromEmail;
   }
 
-  // 格式化时间
   let dateStr = date;
   try {
     const d = new Date(date);
     dateStr = d.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
   } catch {}
 
-  // 提取正文
   const content = extractEmailContent(mail.payload);
-  
-  // 检测附件
   const attachments = detectAttachments(mail.payload);
 
-  // 构建消息
-  let text = \`\${isUnread ? '🔵 未读' : '⚪️ 已读'} | \${subject}\\n\`;
-  text += \`\${'─'.repeat(28)}\\n\`;
-  text += \`👤 \${fromName}\\n\`;
-  if (fromName !== fromEmail) text += \`📧 \${fromEmail}\\n\`;
-  text += \`🕐 \${dateStr}\\n\`;
+  let text = \`\${isUnread ? '🔵 未读' : '⚪️ 已读'} | \${subject}\\n\${'─'.repeat(20)}\\n\`;
+  text += \`👤 \${fromName}\\n📧 \${fromEmail}\\n🕐 \${dateStr}\\n\`;
   if (attachments.length > 0) {
-    text += \`📎 附件(\${attachments.length}): \${attachments.map(a => a.name).join(', ')}\\n\`;
+    text += \`📎 附件(\${attachments.length})\\n\`;
   }
-  text += \`\${'─'.repeat(28)}\\n\\n\`;
-  text += content;
+  text += \`\${'─'.repeat(20)}\\n\\n\${content}\`;
 
-  // 构建按钮
+  // 按钮
   const buttons = [];
   
-  // 操作按钮
   const actionRow = [];
-  if (isUnread) actionRow.push({ text: '✅ 标记已读', callback_data: \`read:\${mailId}\` });
-  else actionRow.push({ text: '📩 标记未读', callback_data: \`unread:\${mailId}\` });
+  if (isUnread) actionRow.push({ text: '✅ 已读', callback_data: \`read:\${mailId}\` });
+  else actionRow.push({ text: '📩 未读', callback_data: \`unread:\${mailId}\` });
   actionRow.push({ text: '⭐ 星标', callback_data: \`star:\${mailId}\` });
   actionRow.push({ text: '🗑️ 删除', callback_data: \`delete:\${mailId}\` });
   buttons.push(actionRow);
 
-  // 发件人搜索
   if (fromEmail) {
-    buttons.push([{ text: \`🔍 搜索 \${fromName.substring(0,12)} 的邮件\`, callback_data: \`search:from:\${fromEmail.substring(0,30)}\` }]);
+    buttons.push([{ text: \`🔍 \${fromName.substring(0,15)} 的邮件\`, callback_data: \`search:from:\${fromEmail.substring(0,30)}\` }]);
   }
 
-  // 附件按钮
   if (attachments.length > 0) {
     const attRow = attachments.slice(0, 3).map((a, i) => ({
-      text: \`📎 \${a.name.substring(0,10)}\`,
-      callback_data: \`attach:\${mailId}:\${i}\`
+      text: \`📎 \${a.name.substring(0,12)}\`,
+      callback_data: \`att:\${mailId}:\${i}\`
     }));
     buttons.push(attRow);
   }
 
-  // 返回列表
-  buttons.push([{ text: '⬅️ 返回列表', callback_data: 'action:back' }]);
+  buttons.push([{ text: '⬅️ 返回', callback_data: 'action:back' }]);
 
   const keyboard = { inline_keyboard: buttons };
 
@@ -1112,43 +1119,39 @@ async function sendMailDetail(chatId, mailId, accessToken, env, editMsgId = null
 async function handleStats(chatId, userId, env) {
   const tokenData = await getValidToken(userId, env);
   if (!tokenData) {
-    await sendMessage(chatId, '⚠️ 请先 /login 登录', env);
+    await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
+      chat_id: chatId,
+      text: '⚠️ 请先点击 🔐 登录',
+      reply_markup: getMainKeyboard()
+    });
     return;
   }
 
-  const loadingMsg = await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
-    chat_id: chatId,
-    text: '📊 正在获取统计...'
-  });
-
   try {
     const token = tokenData.access_token;
+    const today = new Date().toISOString().split('T')[0].replace(/-/g, '/');
     
-    const [profile, unread, today, starred] = await Promise.all([
+    const [profile, unread, todayMail, starred] = await Promise.all([
       fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', { headers: { Authorization: \`Bearer \${token}\` } }).then(r => r.json()),
       fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?q=is:unread&maxResults=1', { headers: { Authorization: \`Bearer \${token}\` } }).then(r => r.json()),
-      fetch(\`https://gmail.googleapis.com/gmail/v1/users/me/messages?q=after:\${new Date().toISOString().split('T')[0].replace(/-/g,'/')}&maxResults=1\`, { headers: { Authorization: \`Bearer \${token}\` } }).then(r => r.json()),
+      fetch(\`https://gmail.googleapis.com/gmail/v1/users/me/messages?q=after:\${today}&maxResults=1\`, { headers: { Authorization: \`Bearer \${token}\` } }).then(r => r.json()),
       fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?q=is:starred&maxResults=1', { headers: { Authorization: \`Bearer \${token}\` } }).then(r => r.json())
     ]);
 
-    await telegramAPI(env.BOT_TOKEN, 'deleteMessage', { chat_id: chatId, message_id: loadingMsg.result.message_id });
-
-    let text = \`📊 *邮箱统计*\\n\${'─'.repeat(24)}\\n\\n\`;
+    let text = \`📊 *邮箱统计*\\n\${'─'.repeat(20)}\\n\\n\`;
     text += \`📧 \${profile.emailAddress || 'N/A'}\\n\\n\`;
     text += \`📬 未读: *\${unread.resultSizeEstimate || 0}* 封\\n\`;
-    text += \`📅 今日: *\${today.resultSizeEstimate || 0}* 封\\n\`;
+    text += \`📅 今日: *\${todayMail.resultSizeEstimate || 0}* 封\\n\`;
     text += \`⭐ 星标: *\${starred.resultSizeEstimate || 0}* 封\\n\`;
-    text += \`💾 总计: *\${profile.messagesTotal || 'N/A'}* 封\\n\`;
+    text += \`💾 总计: *\${profile.messagesTotal || 'N/A'}* 封\`;
 
     const keyboard = {
       inline_keyboard: [
         [
-          { text: '📬 查看未读', callback_data: 'action:new' },
-          { text: '📅 今日邮件', callback_data: 'action:today' }
+          { text: '📬 未读', callback_data: 'search:is:unread' },
+          { text: '📅 今日', callback_data: \`search:after:\${today}\` }
         ],
-        [
-          { text: '🔄 刷新', callback_data: 'action:stats' }
-        ]
+        [{ text: '🔄 刷新', callback_data: 'action:stats' }]
       ]
     };
 
@@ -1159,8 +1162,67 @@ async function handleStats(chatId, userId, env) {
       reply_markup: keyboard
     });
   } catch (error) {
-    await telegramAPI(env.BOT_TOKEN, 'deleteMessage', { chat_id: chatId, message_id: loadingMsg.result.message_id }).catch(() => {});
-    await sendMessage(chatId, \`❌ 获取失败: \${error.message}\`, env);
+    await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
+      chat_id: chatId,
+      text: \`❌ 获取失败: \${error.message}\`,
+      reply_markup: getMainKeyboard()
+    });
+  }
+}
+
+// ==================== 全部已读 ====================
+async function handleReadAll(chatId, userId, env) {
+  const tokenData = await getValidToken(userId, env);
+  if (!tokenData) {
+    await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
+      chat_id: chatId,
+      text: '⚠️ 请先点击 🔐 登录',
+      reply_markup: getMainKeyboard()
+    });
+    return;
+  }
+
+  try {
+    const listResp = await fetch(
+      'https://gmail.googleapis.com/gmail/v1/users/me/messages?q=is:unread&maxResults=100',
+      { headers: { Authorization: \`Bearer \${tokenData.access_token}\` } }
+    );
+    const listData = await listResp.json();
+    const messages = listData.messages || [];
+
+    if (messages.length === 0) {
+      await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
+        chat_id: chatId,
+        text: '✅ 没有未读邮件',
+        reply_markup: getMainKeyboard()
+      });
+      return;
+    }
+
+    // 批量标记已读
+    await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/batchModify', {
+      method: 'POST',
+      headers: { 
+        Authorization: \`Bearer \${tokenData.access_token}\`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        ids: messages.map(m => m.id),
+        removeLabelIds: ['UNREAD']
+      })
+    });
+
+    await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
+      chat_id: chatId,
+      text: \`✅ 已将 \${messages.length} 封邮件标记为已读\`,
+      reply_markup: getMainKeyboard()
+    });
+  } catch (error) {
+    await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
+      chat_id: chatId,
+      text: \`❌ 操作失败: \${error.message}\`,
+      reply_markup: getMainKeyboard()
+    });
   }
 }
 
@@ -1171,74 +1233,54 @@ async function handleCallbackQuery(query, env, origin) {
   const data = query.data;
   const messageId = query.message.message_id;
 
-  // 动作按钮
+  // 快速响应
+  await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', { callback_query_id: query.id });
+
+  // 动作
   if (data.startsWith('action:')) {
     const action = data.split(':')[1];
-    await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', { callback_query_id: query.id });
-    
     switch (action) {
-      case 'login':
-        const savedOrigin = await env.USER_TOKENS.get('worker_origin') || origin;
-        await sendLoginLink(chatId, userId, savedOrigin, env);
-        break;
-      case 'new':
-        await handleMailList(chatId, userId, 'is:unread', null, null, env);
-        break;
-      case 'today':
-        const today = new Date().toISOString().split('T')[0].replace(/-/g, '/');
-        await handleMailList(chatId, userId, \`after:\${today}\`, null, null, env);
+      case 'back':
+        await handleMailList(chatId, userId, 'is:unread', null, messageId, env);
         break;
       case 'stats':
         await handleStats(chatId, userId, env);
         break;
-      case 'search_help':
-        await sendSearchHelp(chatId, env);
-        break;
-      case 'logout':
-        await handleLogout(chatId, userId, env);
-        break;
-      case 'menu':
-        await sendWelcome(chatId, env);
-        break;
-      case 'back':
-        await handleMailList(chatId, userId, 'is:unread', null, messageId, env);
+      case 'readall':
+        await handleReadAll(chatId, userId, env);
         break;
     }
     return;
   }
 
-  // 获取 Token
   const tokenData = await getValidToken(userId, env);
   if (!tokenData) {
     await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', {
       callback_query_id: query.id,
-      text: '请先 /login 登录',
+      text: '请先登录',
       show_alert: true
     });
     return;
   }
 
-  // 查看邮件详情
-  if (data.startsWith('mail:')) {
-    const mailId = data.split(':')[1];
-    await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', { callback_query_id: query.id, text: '加载中...' });
-    await sendMailDetail(chatId, mailId, tokenData.access_token, env, messageId);
+  // 刷新列表
+  if (data.startsWith('refresh:')) {
+    const q = data.substring(8);
+    await handleMailList(chatId, userId, q, null, messageId, env);
     return;
   }
 
-  // 邮件列表（刷新/首页）
-  if (data.startsWith('list:')) {
-    const q = data.substring(5);
-    await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', { callback_query_id: query.id });
-    await handleMailList(chatId, userId, q, null, messageId, env);
+  // 查看邮件
+  if (data.startsWith('mail:')) {
+    const mailId = data.split(':')[1];
+    await sendMailDetail(chatId, userId, mailId, env, messageId);
     return;
   }
 
   // 搜索
   if (data.startsWith('search:')) {
     const q = data.substring(7);
-    await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', { callback_query_id: query.id });
-    await handleMailList(chatId, userId, q, null, null, env);
+    await handleMailList(chatId, userId, q, null, messageId, env);
     return;
   }
 
@@ -1248,10 +1290,7 @@ async function handleCallbackQuery(query, env, origin) {
     const pageData = await env.USER_TOKENS.get(\`page:\${userId}:\${pageId}\`);
     if (pageData) {
       const { query: q, token } = JSON.parse(pageData);
-      await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', { callback_query_id: query.id });
       await handleMailList(chatId, userId, q, token, messageId, env);
-    } else {
-      await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', { callback_query_id: query.id, text: '页面已过期', show_alert: true });
     }
     return;
   }
@@ -1264,8 +1303,7 @@ async function handleCallbackQuery(query, env, origin) {
       headers: { Authorization: \`Bearer \${tokenData.access_token}\`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ removeLabelIds: ['UNREAD'] })
     });
-    await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', { callback_query_id: query.id, text: '✅ 已标记已读' });
-    await sendMailDetail(chatId, mailId, tokenData.access_token, env, messageId);
+    await sendMailDetail(chatId, userId, mailId, env, messageId);
     return;
   }
 
@@ -1277,8 +1315,7 @@ async function handleCallbackQuery(query, env, origin) {
       headers: { Authorization: \`Bearer \${tokenData.access_token}\`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ addLabelIds: ['UNREAD'] })
     });
-    await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', { callback_query_id: query.id, text: '📩 已标记未读' });
-    await sendMailDetail(chatId, mailId, tokenData.access_token, env, messageId);
+    await sendMailDetail(chatId, userId, mailId, env, messageId);
     return;
   }
 
@@ -1290,11 +1327,10 @@ async function handleCallbackQuery(query, env, origin) {
       headers: { Authorization: \`Bearer \${tokenData.access_token}\`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ addLabelIds: ['STARRED'] })
     });
-    await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', { callback_query_id: query.id, text: '⭐ 已加星标' });
     return;
   }
 
-  // 删除邮件
+  // 删除
   if (data.startsWith('delete:')) {
     const mailId = data.split(':')[1];
     await fetch(\`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${mailId}/trash\`, {
@@ -1305,17 +1341,14 @@ async function handleCallbackQuery(query, env, origin) {
       chat_id: chatId,
       message_id: messageId,
       text: '🗑️ 邮件已删除',
-      reply_markup: { inline_keyboard: [[{ text: '⬅️ 返回列表', callback_data: 'action:back' }]] }
+      reply_markup: { inline_keyboard: [[{ text: '⬅️ 返回', callback_data: 'action:back' }]] }
     });
-    await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', { callback_query_id: query.id, text: '🗑️ 已删除' });
     return;
   }
 
-  // 下载附件
-  if (data.startsWith('attach:')) {
+  // 附件
+  if (data.startsWith('att:')) {
     const [, mailId, idx] = data.split(':');
-    await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', { callback_query_id: query.id, text: '📎 下载中...' });
-    
     try {
       const mailResp = await fetch(\`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${mailId}?format=full\`, {
         headers: { Authorization: \`Bearer \${tokenData.access_token}\` }
@@ -1324,8 +1357,10 @@ async function handleCallbackQuery(query, env, origin) {
       const attachments = detectAttachments(mail.payload);
       const att = attachments[parseInt(idx)];
       
-      if (!att) throw new Error('附件不存在');
-      if (att.size > MAX_ATTACHMENT_SIZE) throw new Error('附件超过 15MB 限制');
+      if (!att || att.size > MAX_ATTACHMENT_SIZE) {
+        await telegramAPI(env.BOT_TOKEN, 'sendMessage', { chat_id: chatId, text: '❌ 附件过大或不存在' });
+        return;
+      }
 
       const attResp = await fetch(\`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${mailId}/attachments/\${att.attachmentId}\`, {
         headers: { Authorization: \`Bearer \${tokenData.access_token}\` }
@@ -1340,13 +1375,11 @@ async function handleCallbackQuery(query, env, origin) {
       const formData = new FormData();
       formData.append('chat_id', chatId);
       formData.append('document', new Blob([bytes], { type: att.mimeType }), att.name);
-      formData.append('caption', \`📎 \${att.name}\\n📏 \${(att.size/1024).toFixed(1)} KB\`);
 
       await fetch(\`https://api.telegram.org/bot\${env.BOT_TOKEN}/sendDocument\`, { method: 'POST', body: formData });
     } catch (e) {
-      await sendMessage(chatId, \`❌ 下载失败: \${e.message}\`, env);
+      await telegramAPI(env.BOT_TOKEN, 'sendMessage', { chat_id: chatId, text: \`❌ 下载失败: \${e.message}\` });
     }
-    return;
   }
 }
 
@@ -1405,7 +1438,6 @@ function extractEmailContent(payload) {
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
     let text = new TextDecoder('utf-8').decode(bytes);
     
-    // 清理 HTML
     text = text.replace(/<style[^>]*>[\\s\\S]*?<\\/style>/gi, '');
     text = text.replace(/<script[^>]*>[\\s\\S]*?<\\/script>/gi, '');
     text = text.replace(/<br\\s*\\/?>/gi, '\\n');
@@ -1453,12 +1485,6 @@ async function telegramAPI(token, method, params = {}) {
   return resp.json();
 }
 
-async function sendMessage(chatId, text, env, parseMode = null) {
-  const params = { chat_id: chatId, text };
-  if (parseMode) params.parse_mode = parseMode;
-  return telegramAPI(env.BOT_TOKEN, 'sendMessage', params);
-}
-
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
 }
@@ -1466,7 +1492,7 @@ function jsonResponse(data, status = 200) {
 function generateHomePage() {
   return \`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Gmail Bot</title>
 <style>body{font-family:system-ui;background:#1a1a2e;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
-.c{text-align:center}.e{font-size:4rem;margin-bottom:1rem}h1{font-size:2.5rem}p{color:#94a3b8}.s{background:#22c55e20;border:1px solid #22c55e50;padding:12px 24px;border-radius:50px;margin-top:2rem;display:inline-block}</style>
+.c{text-align:center}.e{font-size:4rem}h1{margin:1rem 0}p{color:#94a3b8}.s{background:#22c55e20;border:1px solid #22c55e50;padding:12px 24px;border-radius:50px;margin-top:1.5rem;display:inline-block}</style>
 </head><body><div class="c"><div class="e">📧🤖</div><h1>Gmail Bot</h1><p>Telegram Bot 运行中</p><div class="s">✅ 服务正常</div></div></body></html>\`;
 }`;
 
