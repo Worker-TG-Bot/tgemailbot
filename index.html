@@ -47,6 +47,7 @@
         <span class="bg-white/20 px-3 py-1 rounded-full text-sm">🔒 OAuth 安全认证</span>
         <span class="bg-white/20 px-3 py-1 rounded-full text-sm">🔔 实时推送</span>
         <span class="bg-white/20 px-3 py-1 rounded-full text-sm">👥 多账户支持</span>
+        <span class="bg-white/20 px-3 py-1 rounded-full text-sm">🌐 网页预览邮件</span>
       </div>
     </div>
   </header>
@@ -74,6 +75,11 @@
           <p class="text-gray-400 text-sm">上一页/下一页翻页，每页5封邮件</p>
         </div>
         <div class="bg-gray-800 rounded-xl p-5 border border-gray-700 hover:border-purple-500 transition">
+          <div class="text-2xl mb-2">🌐</div>
+          <h3 class="font-semibold mb-1">网页预览</h3>
+          <p class="text-gray-400 text-sm">完整 HTML 渲染，临时安全链接</p>
+        </div>
+        <div class="bg-gray-800 rounded-xl p-5 border border-gray-700 hover:border-purple-500 transition">
           <div class="text-2xl mb-2">🔍</div>
           <h3 class="font-semibold mb-1">智能搜索</h3>
           <p class="text-gray-400 text-sm">支持 Gmail 搜索语法，快捷按钮</p>
@@ -92,11 +98,6 @@
           <div class="text-2xl mb-2">✅</div>
           <h3 class="font-semibold mb-1">批量操作</h3>
           <p class="text-gray-400 text-sm">一键全部已读、单封标记、删除</p>
-        </div>
-        <div class="bg-gray-800 rounded-xl p-5 border border-gray-700 hover:border-purple-500 transition">
-          <div class="text-2xl mb-2">👤</div>
-          <h3 class="font-semibold mb-1">发件人搜索</h3>
-          <p class="text-gray-400 text-sm">点击发件人快速搜索 TA 的所有邮件</p>
         </div>
         <div class="bg-gray-800 rounded-xl p-5 border border-gray-700 hover:border-purple-500 transition">
           <div class="text-2xl mb-2">🔐</div>
@@ -425,6 +426,17 @@
             </ol>
           </div>
         </details>
+
+        <details class="bg-gray-800 rounded-xl border border-gray-700">
+          <summary class="px-5 py-4 cursor-pointer font-semibold">网页预览链接打不开</summary>
+          <div class="px-5 pb-4 text-gray-300">
+            <ol class="list-decimal list-inside space-y-1">
+              <li>链接有效期为 1 小时，过期后需重新生成</li>
+              <li>链接包含安全 token，仅授权用户可访问</li>
+              <li>确保网络可以访问 Cloudflare Workers</li>
+            </ol>
+          </div>
+        </details>
       </div>
     </section>
 
@@ -466,18 +478,34 @@
             <div class="text-sm">推送通知</div>
           </div>
         </div>
+        <div class="mt-4 flex flex-wrap gap-4 justify-center items-center text-center">
+          <div class="bg-cyan-600/20 border border-cyan-500/50 rounded-lg px-4 py-3">
+            <div class="text-2xl mb-1">🌐</div>
+            <div class="text-sm">网页预览</div>
+          </div>
+          <div class="text-gray-500">←</div>
+          <div class="bg-orange-600/20 border border-orange-500/50 rounded-lg px-4 py-3">
+            <div class="text-2xl mb-1">⚡</div>
+            <div class="text-sm">Worker /mail/token</div>
+          </div>
+          <div class="text-gray-500">←</div>
+          <div class="bg-purple-600/20 border border-purple-500/50 rounded-lg px-4 py-3">
+            <div class="text-2xl mb-1">🔗</div>
+            <div class="text-sm">临时安全链接</div>
+          </div>
+        </div>
         <div class="mt-6 grid md:grid-cols-3 gap-4 text-center text-sm">
           <div class="bg-gray-700/30 rounded-lg p-3">
             <div class="text-purple-400 font-semibold mb-1">KV Storage</div>
-            <div class="text-gray-400">存储用户 Token 和账户信息</div>
+            <div class="text-gray-400">存储 Token、邮件缓存</div>
           </div>
           <div class="bg-gray-700/30 rounded-lg p-3">
             <div class="text-purple-400 font-semibold mb-1">多账户</div>
             <div class="text-gray-400">每用户支持多个 Gmail</div>
           </div>
           <div class="bg-gray-700/30 rounded-lg p-3">
-            <div class="text-purple-400 font-semibold mb-1">Cron Trigger</div>
-            <div class="text-gray-400">自动续期 Watch</div>
+            <div class="text-purple-400 font-semibold mb-1">临时链接</div>
+            <div class="text-gray-400">1小时有效，安全加密</div>
           </div>
         </div>
       </div>
@@ -488,16 +516,16 @@
   <footer class="bg-gray-800/50 border-t border-gray-700 py-8 px-4">
     <div class="max-w-5xl mx-auto text-center text-gray-400">
       <p>Gmail Telegram Bot - 基于 Cloudflare Workers</p>
-      <p class="mt-2 text-sm">完全免费 · 多账户支持 · 实时推送 · 安全可靠</p>
+      <p class="mt-2 text-sm">完全免费 · 多账户支持 · 实时推送 · 网页预览 · 安全可靠</p>
     </div>
   </footer>
 
   <script>
-    // Worker 代码
+    // Worker 完整代码 (v2.2 - 统一时间函数版)
     const workerCode = `/**
- * Gmail Telegram Bot - Cloudflare Worker
+ * Gmail Telegram Bot - Cloudflare Worker (v2.2)
  * 功能：通过 Telegram Bot 安全访问 Gmail 邮箱
- * 特性：多账户、分页浏览、实时推送、批量操作
+ * 特性：多账户、分页浏览、实时推送、网页预览、批量操作
  */
 
 const GMAIL_SCOPES = [
@@ -508,9 +536,6 @@ const GMAIL_SCOPES = [
 const PAGE_SIZE = 5;
 const MAX_CONTENT_LENGTH = 3500;
 const PREVIEW_LENGTH = 300;
-const TOKEN_REFRESH_BUFFER = 60000;
-const WATCH_EXPIRY_BUFFER = 86400000;
-const MAX_ATTACHMENT_SIZE = 20 * 1024 * 1024;
 
 // ==================== 主入口 ====================
 export default {
@@ -519,7 +544,7 @@ export default {
     const path = url.pathname;
 
     try {
-      // 设置接口
+      // 设置 webhook
       if (path === '/setup') {
         return await handleSetup(url, env);
       }
@@ -529,80 +554,199 @@ export default {
         return await handleOAuthCallback(request, env);
       }
       
+      // 邮件网页预览
+      if (path.startsWith('/mail/')) {
+        return await handleMailView(path, env);
+      }
+      
       // Pub/Sub 推送
       if (path === '/pubsub/push') {
         const secret = url.searchParams.get('secret');
         if (secret !== env.BOT_SECRET) {
-          return jsonResponse({ error: 'Unauthorized' }, 401);
+          return new Response('Unauthorized', { status: 401 });
         }
         const message = await request.json();
         ctx.waitUntil(handlePubSubPush(message, env));
-        return jsonResponse({ ok: true });
+        return new Response('OK');
       }
       
-      // Telegram Webhook
+      // Telegram webhook
       if (path === '/webhook' && request.method === 'POST') {
         const secret = url.searchParams.get('secret');
         if (secret !== env.BOT_SECRET) {
-          return jsonResponse({ error: 'Unauthorized' }, 401);
+          return new Response('Unauthorized', { status: 401 });
         }
         const update = await request.json();
-        ctx.waitUntil(handleBotUpdate(update, env, url.origin));
-        return jsonResponse({ ok: true });
+        ctx.waitUntil(handleTelegramUpdate(update, env, url.origin));
+        return new Response('OK');
       }
 
-      // 首页
-      return new Response(generateHomePage(), {
+      return new Response(getHomePage(), {
         headers: { 'Content-Type': 'text/html; charset=utf-8' }
       });
     } catch (error) {
       console.error('Error:', error);
-      return jsonResponse({ error: error.message }, 500);
+      return new Response('Error: ' + error.message, { status: 500 });
     }
   },
 
-  // Cron 触发器 - 续期 watch
   async scheduled(event, env, ctx) {
     ctx.waitUntil(renewAllWatches(env));
   }
 };
 
-// ==================== Webhook 设置 ====================
+// ==================== 统一时间函数 ====================
+function toBeijingTime(date) {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return new Date(d.getTime() + 8 * 60 * 60 * 1000);
+}
+
+function formatDate(dateStr, format = 'short') {
+  try {
+    const d = toBeijingTime(dateStr);
+    const year = d.getUTCFullYear();
+    const month = d.getUTCMonth() + 1;
+    const day = d.getUTCDate();
+    const hours = String(d.getUTCHours()).padStart(2, '0');
+    const minutes = String(d.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(d.getUTCSeconds()).padStart(2, '0');
+    
+    switch (format) {
+      case 'chinese':
+        const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+        const weekday = weekdays[d.getUTCDay()];
+        return \`\${year}年\${month}月\${day}日 星期\${weekday} \${hours}:\${minutes} (北京时间)\`;
+      case 'full':
+        return \`\${year}/\${month}/\${day} \${hours}:\${minutes}:\${seconds}\`;
+      case 'short':
+      default:
+        return \`\${month}/\${day} \${hours}:\${minutes}\`;
+    }
+  } catch {
+    return dateStr;
+  }
+}
+
+function getTodayTimestamp() {
+  const now = Date.now();
+  const offset = 8 * 60 * 60 * 1000;
+  const beijingMs = now + offset;
+  const dayMs = 24 * 60 * 60 * 1000;
+  const beijingMidnight = beijingMs - (beijingMs % dayMs);
+  return Math.floor((beijingMidnight - offset) / 1000);
+}
+
+// ==================== Telegram API ====================
+async function sendTelegram(token, method, data) {
+  const resp = await fetch(\`https://api.telegram.org/bot\${token}/\${method}\`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  return resp.json();
+}
+
+function getMainKeyboard() {
+  return {
+    keyboard: [
+      [{ text: '📬 收件箱' }, { text: '📅 今日' }, { text: '⭐ 星标' }],
+      [{ text: '🔍 搜索' }, { text: '📊 统计' }, { text: '✅ 全已读' }],
+      [{ text: '👤 账户管理' }, { text: '⚙️ 设置' }]
+    ],
+    resize_keyboard: true,
+    persistent: true
+  };
+}
+
+// ==================== Token 管理 ====================
+async function getActiveAccount(userId, env) {
+  const email = await env.USER_TOKENS.get(\`active:\${userId}\`);
+  if (!email) return null;
+  
+  const tokenRaw = await env.USER_TOKENS.get(\`token:\${userId}:\${email}\`);
+  if (!tokenRaw) return null;
+  
+  try {
+    const token = JSON.parse(tokenRaw);
+    token.email = email;
+    
+    if (Date.now() > token.expiry - 60000) {
+      const refreshed = await refreshToken(token.refresh_token, env);
+      if (refreshed) {
+        token.access_token = refreshed.access_token;
+        token.expiry = Date.now() + refreshed.expires_in * 1000;
+        await env.USER_TOKENS.put(\`token:\${userId}:\${email}\`, JSON.stringify(token));
+      } else {
+        return null;
+      }
+    }
+    
+    return token;
+  } catch {
+    return null;
+  }
+}
+
+async function refreshToken(refreshToken, env) {
+  const resp = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: env.GOOGLE_CLIENT_ID,
+      client_secret: env.GOOGLE_CLIENT_SECRET,
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token'
+    })
+  });
+  const data = await resp.json();
+  return data.access_token ? data : null;
+}
+
+async function getAccountList(userId, env) {
+  const raw = await env.USER_TOKENS.get(\`accounts:\${userId}\`);
+  try {
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+// ==================== 邮件ID映射 ====================
+async function storeMailIds(userId, mails, env) {
+  const mapping = {};
+  mails.forEach((mail, index) => {
+    mapping[index] = mail.id;
+  });
+  await env.USER_TOKENS.put(\`mailmap:\${userId}\`, JSON.stringify(mapping), { expirationTtl: 3600 });
+  return mapping;
+}
+
+async function getMailId(userId, index, env) {
+  const raw = await env.USER_TOKENS.get(\`mailmap:\${userId}\`);
+  if (!raw) return null;
+  try {
+    const mapping = JSON.parse(raw);
+    return mapping[index] || null;
+  } catch {
+    return null;
+  }
+}
+
+// ==================== Setup ====================
 async function handleSetup(url, env) {
   const secret = url.searchParams.get('secret');
   if (secret !== env.BOT_SECRET) {
-    return new Response('❌ 错误：请提供正确的 secret 参数', { 
-      status: 401,
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-    });
+    return new Response('Unauthorized', { status: 401 });
   }
 
   const webhookUrl = \`\${url.origin}/webhook?secret=\${env.BOT_SECRET}\`;
-  const results = [];
+  await sendTelegram(env.BOT_TOKEN, 'setWebhook', { url: webhookUrl });
+  await sendTelegram(env.BOT_TOKEN, 'deleteMyCommands', {});
 
-  // 设置 Webhook
-  const webhookResp = await telegramAPI(env.BOT_TOKEN, 'setWebhook', { 
-    url: webhookUrl,
-    allowed_updates: ['message', 'callback_query']
-  });
-  results.push(\`Webhook: \${webhookResp.ok ? '✅ 成功' : '❌ 失败'}\`);
-
-  // 清除命令菜单（使用按钮菜单）
-  await telegramAPI(env.BOT_TOKEN, 'deleteMyCommands', {});
-  results.push('命令菜单: ✅ 已清除（使用按钮菜单）');
-
-  // 获取 Bot 信息
-  const meResp = await telegramAPI(env.BOT_TOKEN, 'getMe');
-  if (meResp.ok) {
-    results.push(\`Bot: @\${meResp.result.username}\`);
-  }
-
-  return new Response(\`🤖 Gmail Bot 设置结果\\n\${'═'.repeat(30)}\\n\\n\${results.join('\\n')}\\n\\n✅ 现在可以在 Telegram 中使用 Bot 了！\\n\\n💡 提示：发送任意消息给 Bot 即可开始\`, {
-    headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-  });
+  return new Response(\`✅ 设置完成！Webhook: \${webhookUrl}\`);
 }
 
-// ==================== OAuth 回调处理 ====================
+// ==================== OAuth ====================
 async function handleOAuthCallback(request, env) {
   const url = new URL(request.url);
   const code = url.searchParams.get('code');
@@ -610,13 +754,13 @@ async function handleOAuthCallback(request, env) {
   const error = url.searchParams.get('error');
 
   if (error) {
-    return new Response(generateResultPage(false, \`授权被拒绝: \${error}\`), {
+    return new Response(getResultPage(false, error), {
       headers: { 'Content-Type': 'text/html; charset=utf-8' }
     });
   }
 
   if (!code || !state) {
-    return new Response(generateResultPage(false, '缺少必要参数'), {
+    return new Response(getResultPage(false, '参数缺失'), {
       headers: { 'Content-Type': 'text/html; charset=utf-8' }
     });
   }
@@ -625,22 +769,20 @@ async function handleOAuthCallback(request, env) {
   try {
     stateData = JSON.parse(atob(state));
   } catch {
-    return new Response(generateResultPage(false, 'State 参数无效'), {
+    return new Response(getResultPage(false, 'State 无效'), {
       headers: { 'Content-Type': 'text/html; charset=utf-8' }
     });
   }
 
   const { userId, nonce } = stateData;
-  
-  // 验证 nonce
   const storedNonce = await env.USER_TOKENS.get(\`nonce:\${userId}\`);
+  
   if (!storedNonce || storedNonce !== nonce) {
-    return new Response(generateResultPage(false, '授权已过期，请重新登录'), {
+    return new Response(getResultPage(false, '授权已过期，请重新登录'), {
       headers: { 'Content-Type': 'text/html; charset=utf-8' }
     });
   }
 
-  // 交换 Token
   const tokenResp = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -652,342 +794,270 @@ async function handleOAuthCallback(request, env) {
       grant_type: 'authorization_code'
     })
   });
-
+  
   const tokenData = await tokenResp.json();
-
+  
   if (!tokenData.access_token) {
-    return new Response(generateResultPage(false, tokenData.error_description || 'Token 获取失败'), {
+    return new Response(getResultPage(false, tokenData.error_description || tokenData.error), {
       headers: { 'Content-Type': 'text/html; charset=utf-8' }
     });
   }
 
-  // 获取邮箱信息
   const profileResp = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
     headers: { Authorization: \`Bearer \${tokenData.access_token}\` }
   });
   const profile = await profileResp.json();
-  const email = profile.emailAddress || 'unknown';
+  const email = profile.emailAddress;
 
-  // 保存账户 Token
   await env.USER_TOKENS.put(\`token:\${userId}:\${email}\`, JSON.stringify({
     access_token: tokenData.access_token,
     refresh_token: tokenData.refresh_token,
-    expiry: Date.now() + (tokenData.expires_in * 1000),
-    email: email
+    expiry: Date.now() + tokenData.expires_in * 1000
   }));
 
-  // 更新账户列表
-  let accounts = [];
-  try {
-    const accountsRaw = await env.USER_TOKENS.get(\`accounts:\${userId}\`);
-    if (accountsRaw) accounts = JSON.parse(accountsRaw);
-  } catch {}
-  
+  const accounts = await getAccountList(userId, env);
   if (!accounts.includes(email)) {
     accounts.push(email);
     await env.USER_TOKENS.put(\`accounts:\${userId}\`, JSON.stringify(accounts));
   }
 
-  // 设置为当前活跃账户
   await env.USER_TOKENS.put(\`active:\${userId}\`, email);
-
-  // 清除 nonce
   await env.USER_TOKENS.delete(\`nonce:\${userId}\`);
 
-  // 发送成功消息到 Telegram
-  await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
+  await sendTelegram(env.BOT_TOKEN, 'sendMessage', {
     chat_id: userId,
-    text: \`✅ *账户绑定成功！*\\n\\n📧 \${email}\\n\\n已设为当前使用账户，点击下方按钮开始使用\`,
-    parse_mode: 'Markdown',
+    text: \`✅ 账户绑定成功！\\n\\n📧 \${email}\\n\\n点击下方按钮开始使用\`,
     reply_markup: getMainKeyboard()
   });
 
-  return new Response(generateResultPage(true, email), {
+  return new Response(getResultPage(true, email), {
     headers: { 'Content-Type': 'text/html; charset=utf-8' }
   });
 }
 
-// 生成结果页面
-function generateResultPage(success, message) {
-  const bgColor = success ? '#10b981' : '#ef4444';
-  const icon = success ? '✓' : '✕';
-  const title = success ? '授权成功！' : '授权失败';
+// ==================== 邮件网页预览 ====================
+async function handleMailView(path, env) {
+  const token = path.replace('/mail/', '');
+  const mailData = await env.USER_TOKENS.get(\`view:\${token}\`);
   
+  if (!mailData) {
+    return new Response(getExpiredPage(), {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      status: 404
+    });
+  }
+
+  try {
+    const { userId, mailId, email } = JSON.parse(mailData);
+    
+    const tokenRaw = await env.USER_TOKENS.get(\`token:\${userId}:\${email}\`);
+    if (!tokenRaw) {
+      return new Response(getExpiredPage(), {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        status: 401
+      });
+    }
+
+    let tokenInfo = JSON.parse(tokenRaw);
+    
+    if (Date.now() > tokenInfo.expiry - 60000) {
+      const refreshed = await refreshToken(tokenInfo.refresh_token, env);
+      if (refreshed) {
+        tokenInfo.access_token = refreshed.access_token;
+        tokenInfo.expiry = Date.now() + refreshed.expires_in * 1000;
+        await env.USER_TOKENS.put(\`token:\${userId}:\${email}\`, JSON.stringify(tokenInfo));
+      } else {
+        return new Response(getExpiredPage(), {
+          headers: { 'Content-Type': 'text/html; charset=utf-8' },
+          status: 401
+        });
+      }
+    }
+
+    const resp = await fetch(
+      \`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${mailId}?format=full\`,
+      { headers: { Authorization: \`Bearer \${tokenInfo.access_token}\` } }
+    );
+
+    if (!resp.ok) {
+      return new Response(getExpiredPage(), {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        status: 404
+      });
+    }
+
+    const mail = await resp.json();
+    return new Response(renderMailPage(mail), {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' }
+    });
+
+  } catch (e) {
+    return new Response(getExpiredPage(), {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      status: 500
+    });
+  }
+}
+
+function renderMailPage(mail) {
+  const headers = mail.payload?.headers || [];
+  const getHeader = (n) => headers.find(h => h.name.toLowerCase() === n.toLowerCase())?.value || '';
+  
+  const from = getHeader('From');
+  const to = getHeader('To');
+  const subject = getHeader('Subject') || '(无主题)';
+  const date = formatDate(getHeader('Date'), 'chinese');
+
+  let htmlContent = findBody(mail.payload, 'text/html');
+  let textContent = findBody(mail.payload, 'text/plain');
+  
+  let body = '';
+  if (htmlContent) {
+    try {
+      const base64 = htmlContent.replace(/-/g, '+').replace(/_/g, '/');
+      body = decodeBase64(base64);
+    } catch {
+      body = '<p>无法解析邮件内容</p>';
+    }
+  } else if (textContent) {
+    try {
+      const base64 = textContent.replace(/-/g, '+').replace(/_/g, '/');
+      const text = decodeBase64(base64);
+      body = '<pre style="white-space:pre-wrap;word-wrap:break-word;font-family:inherit;">' + 
+             text.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre>';
+    } catch {
+      body = '<p>无法解析邮件内容</p>';
+    }
+  } else {
+    body = '<p>无邮件内容</p>';
+  }
+
   return \`<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>\${title} - Gmail Bot</title>
+  <title>\${subject.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-      color: #fff;
-      padding: 20px;
-    }
-    .card {
-      background: rgba(255,255,255,0.1);
-      backdrop-filter: blur(20px);
-      border-radius: 24px;
-      padding: 48px;
-      text-align: center;
-      max-width: 420px;
-      width: 100%;
-      border: 1px solid rgba(255,255,255,0.2);
-      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-    }
-    .icon {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 24px;
-      font-size: 40px;
-      font-weight: bold;
-      background: \${bgColor};
-      box-shadow: 0 10px 40px \${bgColor}66;
-      animation: \${success ? 'bounce' : 'shake'} 0.5s ease;
-    }
-    @keyframes bounce {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.1); }
-    }
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-5px); }
-      75% { transform: translateX(5px); }
-    }
-    h1 { font-size: 28px; margin-bottom: 16px; }
-    .email {
-      background: rgba(99,102,241,0.2);
-      border: 1px solid rgba(99,102,241,0.3);
-      padding: 16px 24px;
-      border-radius: 12px;
-      margin: 24px 0;
-      font-size: 16px;
-      word-break: break-all;
-    }
-    .hint { color: #94a3b8; font-size: 14px; margin-bottom: 24px; }
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 14px 32px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      text-decoration: none;
-      border-radius: 12px;
-      font-weight: 600;
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 20px rgba(102,126,234,0.4);
-    }
-    .features {
-      display: flex;
-      justify-content: center;
-      gap: 16px;
-      margin-top: 32px;
-      flex-wrap: wrap;
-    }
-    .feature {
-      background: rgba(255,255,255,0.05);
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 12px;
-      color: #a5b4fc;
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; line-height: 1.6; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+    .header h1 { font-size: 18px; font-weight: 600; margin-bottom: 12px; word-break: break-word; }
+    .meta { font-size: 13px; opacity: 0.9; }
+    .meta-row { margin: 4px 0; display: flex; }
+    .meta-label { width: 50px; opacity: 0.7; }
+    .meta-value { flex: 1; word-break: break-all; }
+    .content { background: white; margin: 16px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; }
+    .content-inner { padding: 20px; overflow-x: auto; }
+    .content-inner img { max-width: 100%; height: auto; }
+    .content-inner a { color: #667eea; }
+    .content-inner table { max-width: 100%; }
+    .footer { text-align: center; padding: 20px; color: #999; font-size: 12px; }
+    .back-btn { display: inline-block; margin-top: 10px; padding: 8px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 20px; font-size: 14px; }
+    @media (max-width: 600px) {
+      .header { padding: 16px; }
+      .header h1 { font-size: 16px; }
+      .content { margin: 12px; }
+      .content-inner { padding: 16px; }
     }
   </style>
 </head>
 <body>
-  <div class="card">
-    <div class="icon">\${icon}</div>
-    <h1>\${title}</h1>
-    <div class="email">\${success ? '📧 ' + message : '❌ ' + message}</div>
-    <p class="hint">\${success ? '账户已添加，可以关闭此页面返回 Telegram' : '请返回 Telegram 重试'}</p>
-    <a href="https://t.me" class="btn">📱 返回 Telegram</a>
-    \${success ? '<div class="features"><span class="feature">🔒 安全加密</span><span class="feature">📨 实时推送</span><span class="feature">👥 多账户</span></div>' : ''}
+  <div class="header">
+    <h1>\${subject.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</h1>
+    <div class="meta">
+      <div class="meta-row"><span class="meta-label">发件人</span><span class="meta-value">\${from.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span></div>
+      <div class="meta-row"><span class="meta-label">收件人</span><span class="meta-value">\${to.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span></div>
+      <div class="meta-row"><span class="meta-label">时间</span><span class="meta-value">\${date}</span></div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="content-inner">\${body}</div>
+  </div>
+  <div class="footer">
+    <p>此链接 1 小时内有效</p>
+    <a href="https://t.me" class="back-btn">返回 Telegram</a>
   </div>
 </body>
 </html>\`;
 }
 
-// ==================== Pub/Sub 推送处理 ====================
-async function handlePubSubPush(message, env) {
-  if (!message.message?.data) return;
-
-  const data = JSON.parse(atob(message.message.data));
-  const { emailAddress, historyId } = data;
-
-  // 查找订阅了这个邮箱的用户
-  const list = await env.USER_TOKENS.list({ prefix: 'push:' });
-  
-  for (const key of list.keys) {
-    const pushData = await env.USER_TOKENS.get(key.name, { type: 'json' });
-    if (!pushData?.enabled) continue;
-
-    const parts = key.name.split(':');
-    const userId = parts[1];
-    const email = parts.slice(2).join(':');
-    
-    if (email !== emailAddress) continue;
-
-    // 获取 token
-    const tokenData = await getValidToken(userId, email, env);
-    if (!tokenData) continue;
-
-    // 获取新邮件
-    try {
-      const historyUrl = new URL('https://gmail.googleapis.com/gmail/v1/users/me/history');
-      historyUrl.searchParams.set('startHistoryId', pushData.historyId || historyId);
-      historyUrl.searchParams.set('historyTypes', 'messageAdded');
-      historyUrl.searchParams.set('labelId', 'INBOX');
-
-      const historyResp = await fetch(historyUrl, {
-        headers: { Authorization: \`Bearer \${tokenData.access_token}\` }
-      });
-      const historyData = await historyResp.json();
-
-      if (historyData.history) {
-        for (const h of historyData.history) {
-          if (h.messagesAdded) {
-            for (const m of h.messagesAdded) {
-              await sendNewMailNotification(userId, email, m.message.id, tokenData.access_token, env);
-            }
-          }
-        }
-      }
-
-      // 更新 historyId
-      pushData.historyId = historyData.historyId || historyId;
-      await env.USER_TOKENS.put(key.name, JSON.stringify(pushData));
-    } catch (e) {
-      console.error('Push notification error:', e);
-    }
-  }
+function getExpiredPage() {
+  return \`<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>链接已过期</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: linear-gradient(135deg, #1a1a2e, #16213e); color: white; min-height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0; }
+    .box { text-align: center; padding: 40px; }
+    .icon { font-size: 64px; margin-bottom: 20px; }
+    h1 { margin-bottom: 10px; }
+    p { opacity: 0.7; margin-bottom: 20px; }
+    .btn { display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; text-decoration: none; border-radius: 25px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="icon">⏰</div>
+    <h1>链接已过期</h1>
+    <p>此邮件预览链接已失效，请返回 Telegram 重新生成</p>
+    <a href="https://t.me" class="btn">返回 Telegram</a>
+  </div>
+</body>
+</html>\`;
 }
 
-// 发送新邮件通知
-async function sendNewMailNotification(userId, email, messageId, accessToken, env) {
-  const detailResp = await fetch(
-    \`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${messageId}?format=metadata&metadataHeaders=From&metadataHeaders=Subject\`,
-    { headers: { Authorization: \`Bearer \${accessToken}\` } }
-  );
-  
-  if (!detailResp.ok) return;
-
-  const mail = await detailResp.json();
-  const headers = mail.payload?.headers || [];
-  const getHeader = (name) => headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value || '';
-
-  const from = getHeader('From');
-  const subject = getHeader('Subject') || '(无主题)';
-
-  let fromName = from;
-  const emailMatch = from.match(/[\\w.-]+@[\\w.-]+\\.\\w+/);
-  if (emailMatch) {
-    fromName = from.replace(emailMatch[0], '').replace(/[<>"]/g, '').trim() || emailMatch[0];
-  }
-
-  const text = \`🔔 *新邮件通知*\\n\${'━'.repeat(18)}\\n\\n📧 \${email}\\n\\n👤 \${fromName}\\n📋 \${subject}\`;
-
-  const keyboard = {
-    inline_keyboard: [
-      [{ text: '📖 查看详情', callback_data: \`mail:\${messageId}\` }],
-      [
-        { text: '✅ 标记已读', callback_data: \`read:\${messageId}\` },
-        { text: '🗑️ 删除', callback_data: \`delete:\${messageId}\` }
-      ]
-    ]
-  };
-
-  await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
-    chat_id: userId,
-    text,
-    parse_mode: 'Markdown',
-    reply_markup: keyboard
-  });
+function decodeBase64(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder('utf-8').decode(bytes);
 }
 
-// 续期所有 watch
-async function renewAllWatches(env) {
-  if (!env.PUBSUB_TOPIC) return;
-
-  const list = await env.USER_TOKENS.list({ prefix: 'push:' });
+// ==================== 生成预览链接 ====================
+async function generateViewLink(userId, mailId, email, env) {
+  const origin = await env.USER_TOKENS.get('origin');
+  const token = crypto.randomUUID();
   
-  for (const key of list.keys) {
-    const pushData = await env.USER_TOKENS.get(key.name, { type: 'json' });
-    if (!pushData?.enabled) continue;
-
-    const parts = key.name.split(':');
-    const userId = parts[1];
-    const email = parts.slice(2).join(':');
-
-    const tokenData = await getValidToken(userId, email, env);
-    if (!tokenData) continue;
-
-    try {
-      const watchResp = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/watch', {
-        method: 'POST',
-        headers: {
-          Authorization: \`Bearer \${tokenData.access_token}\`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          topicName: env.PUBSUB_TOPIC,
-          labelIds: ['INBOX']
-        })
-      });
-
-      const watchData = await watchResp.json();
-      if (watchData.historyId) {
-        pushData.historyId = watchData.historyId;
-        pushData.watchExpiry = parseInt(watchData.expiration);
-        await env.USER_TOKENS.put(key.name, JSON.stringify(pushData));
-      }
-    } catch (e) {
-      console.error('Watch renewal error:', e);
-    }
-  }
+  await env.USER_TOKENS.put(\`view:\${token}\`, JSON.stringify({
+    userId,
+    mailId,
+    email
+  }), { expirationTtl: 3600 });
+  
+  return \`\${origin}/mail/\${token}\`;
 }
 
-// ==================== Bot 更新处理 ====================
-async function handleBotUpdate(update, env, origin) {
+// ==================== Telegram 更新处理 ====================
+async function handleTelegramUpdate(update, env, origin) {
+  await env.USER_TOKENS.put('origin', origin);
+
   if (update.callback_query) {
-    await handleCallbackQuery(update.callback_query, env, origin);
-    return;
+    await handleCallback(update.callback_query, env);
+  } else if (update.message?.text) {
+    await handleMessage(update.message, env);
   }
+}
 
-  if (!update.message) return;
+async function handleMessage(message, env) {
+  const chatId = message.chat.id;
+  const userId = String(message.from.id);
+  const text = message.text.trim();
 
-  const msg = update.message;
-  const chatId = msg.chat.id;
-  const userId = msg.from.id.toString();
-  const text = (msg.text || '').trim();
+  const todayTs = getTodayTimestamp();
 
-  // 保存 origin 供登录使用
-  await env.USER_TOKENS.put('worker_origin', origin);
-
-  // 按钮文本处理
   const handlers = {
     '/start': () => sendWelcome(chatId, userId, env),
     '🏠 主菜单': () => sendWelcome(chatId, userId, env),
-    '📬 收件箱': () => handleMailList(chatId, userId, 'in:inbox', null, null, env),
-    '📅 今日': () => handleMailList(chatId, userId, \`after:\${getTodayDate()}\`, null, null, env),
-    '⭐ 星标': () => handleMailList(chatId, userId, 'is:starred', null, null, env),
+    '📬 收件箱': () => sendMailList(chatId, userId, 'in:inbox', null, null, env),
+    '📅 今日': () => sendMailList(chatId, userId, \`after:\${todayTs}\`, null, null, env),
+    '⭐ 星标': () => sendMailList(chatId, userId, 'is:starred', null, null, env),
     '🔍 搜索': () => sendSearchHelp(chatId, env),
-    '📊 统计': () => handleStats(chatId, userId, null, env),
-    '✅ 全已读': () => handleMarkAllRead(chatId, userId, env),
-    '👤 账户管理': () => handleAccountManage(chatId, userId, null, env),
+    '📊 统计': () => sendStats(chatId, userId, null, env),
+    '✅ 全已读': () => markAllRead(chatId, userId, env),
+    '👤 账户管理': () => sendAccountManager(chatId, userId, null, env),
     '⚙️ 设置': () => sendSettings(chatId, userId, env)
   };
 
@@ -996,152 +1066,32 @@ async function handleBotUpdate(update, env, origin) {
     return;
   }
 
-  // 搜索命令
-  if (text.startsWith('/search ') || text.startsWith('搜索 ')) {
-    const query = text.replace(/^(\\/search |搜索 )/, '').trim();
+  if (text.startsWith('搜索 ') || text.startsWith('/search ')) {
+    const query = text.replace(/^(搜索 |\\/search )/, '').trim();
     if (query) {
-      await handleMailList(chatId, userId, query, null, null, env);
+      await sendMailList(chatId, userId, query, null, null, env);
     }
     return;
   }
 
-  // 默认显示欢迎
   await sendWelcome(chatId, userId, env);
 }
 
-// ==================== 主键盘 ====================
-function getMainKeyboard() {
-  return {
-    keyboard: [
-      [{ text: '📬 收件箱' }, { text: '📅 今日' }, { text: '⭐ 星标' }],
-      [{ text: '🔍 搜索' }, { text: '📊 统计' }, { text: '✅ 全已读' }],
-      [{ text: '👤 账户管理' }, { text: '⚙️ 设置' }, { text: '🏠 主菜单' }]
-    ],
-    resize_keyboard: true,
-    persistent: true
-  };
-}
-
-// ==================== 工具函数 ====================
-// 转换为北京时间 (UTC+8)
-function toBeijingTime(date) {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  // 获取 UTC 时间戳，加上 8 小时偏移
-  const beijingOffset = 8 * 60 * 60 * 1000;
-  const utc = d.getTime() + (d.getTimezoneOffset() * 60 * 1000);
-  return new Date(utc + beijingOffset);
-}
-
-// 格式化日期为北京时间
-function formatBeijingDate(date, format = 'datetime') {
-  const d = toBeijingTime(date);
-  const year = d.getFullYear();
-  const month = d.getMonth() + 1;
-  const day = d.getDate();
-  const hours = String(d.getHours()).padStart(2, '0');
-  const minutes = String(d.getMinutes()).padStart(2, '0');
-  
-  if (format === 'date') {
-    return \`\${year}/\${month}/\${day}\`;
-  }
-  return \`\${month}/\${day} \${hours}:\${minutes}\`;
-}
-
-function getTodayDate() {
-  const now = toBeijingTime(new Date());
-  return \`\${now.getFullYear()}/\${now.getMonth() + 1}/\${now.getDate()}\`;
-}
-
-function jsonResponse(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json' }
-  });
-}
-
-async function telegramAPI(token, method, params = {}) {
-  const resp = await fetch(\`https://api.telegram.org/bot\${token}/\${method}\`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params)
-  });
-  return resp.json();
-}
-
-// 获取当前活跃账户的 Token
-async function getActiveToken(userId, env) {
-  const activeEmail = await env.USER_TOKENS.get(\`active:\${userId}\`);
-  if (!activeEmail) return null;
-  return await getValidToken(userId, activeEmail, env);
-}
-
-// 获取并刷新 Token
-async function getValidToken(userId, email, env) {
-  const raw = await env.USER_TOKENS.get(\`token:\${userId}:\${email}\`);
-  if (!raw) return null;
-
-  let tokenData;
-  try {
-    tokenData = JSON.parse(raw);
-  } catch {
-    return null;
-  }
-
-  // 检查是否需要刷新
-  if (Date.now() > tokenData.expiry - TOKEN_REFRESH_BUFFER) {
-    if (!tokenData.refresh_token) return null;
-
-    try {
-      const resp = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          client_id: env.GOOGLE_CLIENT_ID,
-          client_secret: env.GOOGLE_CLIENT_SECRET,
-          refresh_token: tokenData.refresh_token,
-          grant_type: 'refresh_token'
-        })
-      });
-
-      const newToken = await resp.json();
-      if (!newToken.access_token) return null;
-
-      tokenData.access_token = newToken.access_token;
-      tokenData.expiry = Date.now() + (newToken.expires_in * 1000);
-      await env.USER_TOKENS.put(\`token:\${userId}:\${email}\`, JSON.stringify(tokenData));
-    } catch {
-      return null;
-    }
-  }
-
-  return tokenData;
-}
-
-// 获取账户列表
-async function getAccountList(userId, env) {
-  try {
-    const raw = await env.USER_TOKENS.get(\`accounts:\${userId}\`);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-// ==================== 发送欢迎消息 ====================
+// ==================== 欢迎消息 ====================
 async function sendWelcome(chatId, userId, env) {
   const accounts = await getAccountList(userId, env);
-  const activeEmail = await env.USER_TOKENS.get(\`active:\${userId}\`);
-
-  let accountInfo = '';
+  const active = await env.USER_TOKENS.get(\`active:\${userId}\`);
+  
+  let text = '📧 *Gmail Telegram Bot*\\n━━━━━━━━━━━━━━━━━━━━\\n\\n';
+  
   if (accounts.length > 0) {
-    accountInfo = \`\\n\\n👤 *当前账户:* \${activeEmail || '未选择'}\\n📊 已绑定 \${accounts.length} 个账户\`;
+    text += \`👤 当前账户: \${active || '未选择'}\\n📊 已绑定 \${accounts.length} 个账户\\n\\n\`;
+    text += '使用下方按钮操作 👇';
   } else {
-    accountInfo = '\\n\\n⚠️ 尚未绑定账户，请点击 *👤 账户管理* 添加 Gmail';
+    text += '👋 欢迎使用！\\n\\n请点击 *👤 账户管理* 添加 Gmail 账户';
   }
 
-  const text = \`🤖 *Gmail Telegram Bot*\\n\${'━'.repeat(20)}\${accountInfo}\\n\\n*快捷功能：*\\n📬 收件箱 - 查看最新邮件\\n📅 今日 - 今天收到的邮件\\n⭐ 星标 - 星标邮件\\n🔍 搜索 - 搜索邮件\\n📊 统计 - 邮箱统计信息\\n✅ 全已读 - 一键标记全部已读\\n\\n使用下方按钮操作 👇\`;
-
-  await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
+  await sendTelegram(env.BOT_TOKEN, 'sendMessage', {
     chat_id: chatId,
     text,
     parse_mode: 'Markdown',
@@ -1149,74 +1099,399 @@ async function sendWelcome(chatId, userId, env) {
   });
 }
 
-// ==================== 账户管理 ====================
-async function handleAccountManage(chatId, userId, editMsgId, env) {
-  const accounts = await getAccountList(userId, env);
-  const activeEmail = await env.USER_TOKENS.get(\`active:\${userId}\`);
-
-  let text = '👤 *账户管理*\\n' + '━'.repeat(20) + '\\n\\n';
-
-  if (accounts.length === 0) {
-    text += '📭 尚未绑定任何 Gmail 账户\\n\\n点击下方按钮添加账户';
-  } else {
-    text += \`📊 已绑定 *\${accounts.length}* 个账户\\n\\n\`;
-    accounts.forEach((email, i) => {
-      const isActive = email === activeEmail;
-      text += \`\${isActive ? '✅' : '⚪️'} \${i + 1}. \${email}\${isActive ? ' _(当前)_' : ''}\\n\`;
-    });
-    text += '\\n点击账户切换，或添加新账户';
+// ==================== 邮件列表 ====================
+async function sendMailList(chatId, userId, query, pageToken, editMsgId, env) {
+  const account = await getActiveAccount(userId, env);
+  
+  if (!account) {
+    const method = editMsgId ? 'editMessageText' : 'sendMessage';
+    const params = {
+      chat_id: chatId,
+      text: '⚠️ 请先绑定账户\\n\\n点击 *👤 账户管理* 添加 Gmail',
+      parse_mode: 'Markdown'
+    };
+    if (editMsgId) params.message_id = editMsgId;
+    else params.reply_markup = getMainKeyboard();
+    await sendTelegram(env.BOT_TOKEN, method, params);
+    return;
   }
 
-  const buttons = [];
+  await env.USER_TOKENS.put(\`lastquery:\${userId}\`, query, { expirationTtl: 3600 });
 
-  // 账户切换按钮
-  for (let i = 0; i < accounts.length; i += 2) {
+  const listUrl = new URL('https://gmail.googleapis.com/gmail/v1/users/me/messages');
+  listUrl.searchParams.set('maxResults', PAGE_SIZE);
+  listUrl.searchParams.set('q', query);
+  if (pageToken) listUrl.searchParams.set('pageToken', pageToken);
+
+  const listResp = await fetch(listUrl, {
+    headers: { Authorization: \`Bearer \${account.access_token}\` }
+  });
+  const listData = await listResp.json();
+
+  if (!listData.messages?.length) {
+    const method = editMsgId ? 'editMessageText' : 'sendMessage';
+    const params = {
+      chat_id: chatId,
+      text: \`📭 \${query}\\n\\n没有找到匹配的邮件\`,
+      reply_markup: {
+        inline_keyboard: [[{ text: '🔄 刷新', callback_data: \`ref:\${query.substring(0, 50)}\` }]]
+      }
+    };
+    if (editMsgId) params.message_id = editMsgId;
+    await sendTelegram(env.BOT_TOKEN, method, params);
+    return;
+  }
+
+  const mails = [];
+  for (const msg of listData.messages) {
+    const detailResp = await fetch(
+      \`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date\`,
+      { headers: { Authorization: \`Bearer \${account.access_token}\` } }
+    );
+    const detail = await detailResp.json();
+    const headers = detail.payload?.headers || [];
+    const getHeader = (n) => headers.find(h => h.name.toLowerCase() === n.toLowerCase())?.value || '';
+    
+    let from = getHeader('From');
+    const emailMatch = from.match(/[\\w.-]+@[\\w.-]+\\.[a-z]+/i);
+    if (emailMatch) {
+      from = from.replace(emailMatch[0], '').replace(/[<>"]/g, '').trim() || emailMatch[0];
+    }
+    
+    mails.push({
+      id: msg.id,
+      from: from.substring(0, 20),
+      subject: (getHeader('Subject') || '(无主题)').substring(0, 30),
+      date: formatDate(getHeader('Date')),
+      unread: detail.labelIds?.includes('UNREAD'),
+      starred: detail.labelIds?.includes('STARRED')
+    });
+  }
+
+  await storeMailIds(userId, mails, env);
+
+  let text = \`📬 \${query.substring(0, 30)}\\n━━━━━━━━━━━━━━━━━━━━\\n\\n\`;
+  mails.forEach((m, i) => {
+    const icon = m.unread ? '🔵' : '⚪️';
+    const star = m.starred ? '⭐' : '';
+    text += \`\${icon}\${star} \${i + 1}. \${m.subject}\\n    📤 \${m.from} · \${m.date}\\n\\n\`;
+  });
+
+  const buttons = [];
+  
+  for (let i = 0; i < mails.length; i += 3) {
     const row = [];
-    for (let j = i; j < Math.min(i + 2, accounts.length); j++) {
-      const email = accounts[j];
-      const isActive = email === activeEmail;
-      const shortEmail = email.length > 18 ? email.substring(0, 16) + '..' : email;
-      row.push({
-        text: \`\${isActive ? '✅' : '📧'} \${shortEmail}\`,
-        callback_data: \`switch:\${email.substring(0, 50)}\`
-      });
+    for (let j = i; j < Math.min(i + 3, mails.length); j++) {
+      const icon = mails[j].unread ? '🔵' : '📧';
+      row.push({ text: \`\${icon} \${j + 1}\`, callback_data: \`m:\${j}\` });
     }
     buttons.push(row);
   }
 
-  buttons.push([
-    { text: '➕ 添加账户', callback_data: 'account:add' },
-    { text: '🗑️ 删除账户', callback_data: 'account:delete_menu' }
-  ]);
-  buttons.push([{ text: '🔄 刷新', callback_data: 'account:refresh' }]);
+  const navRow = [];
+  navRow.push({ text: '🔄 刷新', callback_data: \`ref:\${query.substring(0, 50)}\` });
+  
+  if (listData.nextPageToken) {
+    const pageKey = \`page:\${userId}:\${Date.now()}\`;
+    await env.USER_TOKENS.put(pageKey, JSON.stringify({ query, token: listData.nextPageToken }), { expirationTtl: 3600 });
+    navRow.push({ text: '➡️ 下一页', callback_data: \`pg:\${Date.now()}\` });
+  }
+  buttons.push(navRow);
+  buttons.push([{ text: '✅ 全部已读', callback_data: 'readall' }]);
 
-  const keyboard = { inline_keyboard: buttons };
+  const method = editMsgId ? 'editMessageText' : 'sendMessage';
+  const params = {
+    chat_id: chatId,
+    text,
+    reply_markup: { inline_keyboard: buttons }
+  };
+  if (editMsgId) params.message_id = editMsgId;
+  
+  await sendTelegram(env.BOT_TOKEN, method, params);
+}
 
-  if (editMsgId) {
-    await telegramAPI(env.BOT_TOKEN, 'editMessageText', {
+// ==================== 邮件详情 ====================
+async function sendMailDetail(chatId, userId, mailId, editMsgId, showFull, env) {
+  const account = await getActiveAccount(userId, env);
+  
+  if (!account) {
+    await sendTelegram(env.BOT_TOKEN, 'sendMessage', {
+      chat_id: chatId,
+      text: '⚠️ 登录已过期，请重新绑定账户',
+      reply_markup: getMainKeyboard()
+    });
+    return;
+  }
+
+  const resp = await fetch(
+    \`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${mailId}?format=full\`,
+    { headers: { Authorization: \`Bearer \${account.access_token}\` } }
+  );
+  
+  if (!resp.ok) {
+    const method = editMsgId ? 'editMessageText' : 'sendMessage';
+    await sendTelegram(env.BOT_TOKEN, method, {
       chat_id: chatId,
       message_id: editMsgId,
-      text,
-      parse_mode: 'Markdown',
-      reply_markup: keyboard
+      text: '❌ 获取邮件失败',
+      reply_markup: { inline_keyboard: [[{ text: '⬅️ 返回', callback_data: 'back' }]] }
     });
-  } else {
-    await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
-      chat_id: chatId,
-      text,
-      parse_mode: 'Markdown',
-      reply_markup: keyboard
+    return;
+  }
+
+  const mail = await resp.json();
+  const headers = mail.payload?.headers || [];
+  const getHeader = (n) => headers.find(h => h.name.toLowerCase() === n.toLowerCase())?.value || '';
+
+  const from = getHeader('From');
+  const subject = getHeader('Subject') || '(无主题)';
+  const date = formatDate(getHeader('Date'));
+  const unread = mail.labelIds?.includes('UNREAD');
+  const starred = mail.labelIds?.includes('STARRED');
+
+  let fromName = from;
+  let fromEmail = from;
+  const emailMatch = from.match(/[\\w.-]+@[\\w.-]+\\.[a-z]+/i);
+  if (emailMatch) {
+    fromEmail = emailMatch[0];
+    fromName = from.replace(/[<>]/g, '').replace(emailMatch[0], '').replace(/"/g, '').trim() || fromEmail;
+  }
+
+  const maxLen = showFull ? MAX_CONTENT_LENGTH : PREVIEW_LENGTH;
+  const content = extractContent(mail.payload, maxLen, showFull);
+  const attachments = getAttachments(mail.payload);
+
+  let text = \`\${unread ? '🔵 未读' : '⚪️ 已读'}\${starred ? ' ⭐' : ''}\\n\`;
+  text += '━━━━━━━━━━━━━━━━━━━━\\n';
+  text += \`📋 \${subject}\\n\\n\`;
+  text += \`👤 \${fromName}\\n📧 \${fromEmail}\\n🕐 \${date}\\n\`;
+  if (attachments.length) text += \`📎 附件: \${attachments.length} 个\\n\`;
+  text += '━━━━━━━━━━━━━━━━━━━━\\n\\n';
+  text += content;
+
+  await env.USER_TOKENS.put(\`current:\${userId}\`, mailId, { expirationTtl: 3600 });
+
+  const buttons = [];
+  
+  buttons.push([
+    { text: unread ? '✅ 已读' : '📩 未读', callback_data: unread ? 'do:read' : 'do:unread' },
+    { text: starred ? '⭐ 取消' : '⭐ 星标', callback_data: starred ? 'do:unstar' : 'do:star' },
+    { text: '🗑️', callback_data: 'do:delete' }
+  ]);
+
+  if (!showFull && content.includes('(点击查看完整)')) {
+    buttons.push([{ text: '📖 查看完整内容', callback_data: 'do:full' }]);
+  }
+  
+  // 网页预览按钮
+  const viewLink = await generateViewLink(userId, mailId, account.email, env);
+  buttons.push([{ text: '🌐 在浏览器中查看', url: viewLink }]);
+
+  const searchEmail = fromEmail.substring(0, 25);
+  buttons.push([{ text: \`🔍 搜索 \${fromName.substring(0, 10)} 的邮件\`, callback_data: \`sf:\${searchEmail}\` }]);
+
+  if (attachments.length > 0) {
+    const attRow = [];
+    attachments.slice(0, 3).forEach((att, i) => {
+      attRow.push({ text: \`📎 \${att.name.substring(0, 10)}\`, callback_data: \`att:\${i}\` });
     });
+    buttons.push(attRow);
+  }
+
+  buttons.push([{ text: '⬅️ 返回列表', callback_data: 'back' }]);
+
+  const method = editMsgId ? 'editMessageText' : 'sendMessage';
+  const params = {
+    chat_id: chatId,
+    text,
+    reply_markup: { inline_keyboard: buttons }
+  };
+  if (editMsgId) params.message_id = editMsgId;
+  
+  await sendTelegram(env.BOT_TOKEN, method, params);
+}
+
+// ==================== 内容提取 ====================
+function extractContent(payload, maxLen, isFullMode) {
+  let bodyData = findBody(payload, 'text/plain') || findBody(payload, 'text/html');
+  
+  if (!bodyData) return '(无内容)';
+
+  try {
+    const base64 = bodyData.replace(/-/g, '+').replace(/_/g, '/');
+    let text = decodeBase64(base64);
+
+    text = text.replace(/<style[^>]*>[\\s\\S]*?<\\/style>/gi, '');
+    text = text.replace(/<script[^>]*>[\\s\\S]*?<\\/script>/gi, '');
+    text = text.replace(/<br\\s*\\/?>/gi, '\\n');
+    text = text.replace(/<\\/?(p|div|tr|li)[^>]*>/gi, '\\n');
+    text = text.replace(/<[^>]+>/g, '');
+    
+    text = text.replace(/&nbsp;/gi, ' ');
+    text = text.replace(/&amp;/gi, '&');
+    text = text.replace(/&lt;/gi, '<');
+    text = text.replace(/&gt;/gi, '>');
+    text = text.replace(/&quot;/gi, '"');
+    
+    text = text.replace(/[ \\t]+/g, ' ');
+    text = text.replace(/\\n\\s*\\n/g, '\\n\\n');
+    text = text.trim();
+
+    if (text.length > maxLen) {
+      text = text.substring(0, maxLen);
+      if (isFullMode) {
+        text += '\\n\\n... (内容过长，点击浏览器查看完整)';
+      } else {
+        text += '\\n\\n... (点击查看完整)';
+      }
+    }
+
+    return text || '(无内容)';
+  } catch {
+    return '(解析失败)';
   }
 }
 
+function findBody(part, mimeType) {
+  if (part.mimeType === mimeType && part.body?.data) {
+    return part.body.data;
+  }
+  if (part.parts) {
+    for (const p of part.parts) {
+      const found = findBody(p, mimeType);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function getAttachments(payload) {
+  const atts = [];
+  function scan(part) {
+    if (part.filename && part.body?.attachmentId) {
+      atts.push({
+        name: part.filename,
+        id: part.body.attachmentId,
+        size: part.body.size || 0
+      });
+    }
+    if (part.parts) part.parts.forEach(scan);
+  }
+  scan(payload);
+  return atts;
+}
+
+// ==================== 统计 ====================
+async function sendStats(chatId, userId, editMsgId, env) {
+  const account = await getActiveAccount(userId, env);
+  
+  if (!account) {
+    await sendTelegram(env.BOT_TOKEN, 'sendMessage', {
+      chat_id: chatId,
+      text: '⚠️ 请先绑定账户',
+      reply_markup: getMainKeyboard()
+    });
+    return;
+  }
+
+  const token = account.access_token;
+  const todayTs = getTodayTimestamp();
+
+  const [profileResp, unreadResp, todayResp, starredResp] = await Promise.all([
+    fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', { headers: { Authorization: \`Bearer \${token}\` } }),
+    fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?q=is:unread&maxResults=1', { headers: { Authorization: \`Bearer \${token}\` } }),
+    fetch(\`https://gmail.googleapis.com/gmail/v1/users/me/messages?q=after:\${todayTs}&maxResults=1\`, { headers: { Authorization: \`Bearer \${token}\` } }),
+    fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?q=is:starred&maxResults=1', { headers: { Authorization: \`Bearer \${token}\` } })
+  ]);
+
+  const profile = await profileResp.json();
+  const unread = await unreadResp.json();
+  const today = await todayResp.json();
+  const starred = await starredResp.json();
+
+  let text = '📊 *邮箱统计*\\n━━━━━━━━━━━━━━━━━━━━\\n\\n';
+  text += \`📧 \${profile.emailAddress}\\n\\n\`;
+  text += \`📬 未读: *\${unread.resultSizeEstimate || 0}*\\n\`;
+  text += \`📅 今日: *\${today.resultSizeEstimate || 0}*\\n\`;
+  text += \`⭐ 星标: *\${starred.resultSizeEstimate || 0}*\\n\`;
+  text += \`📁 总数: *\${profile.messagesTotal || 0}*\\n\`;
+
+  const buttons = [
+    [
+      { text: '📬 查看未读', callback_data: 'list:is:unread' },
+      { text: '📅 查看今日', callback_data: \`list:after:\${todayTs}\` }
+    ],
+    [{ text: '🔄 刷新', callback_data: 'stats:refresh' }]
+  ];
+
+  const method = editMsgId ? 'editMessageText' : 'sendMessage';
+  const params = {
+    chat_id: chatId,
+    text,
+    parse_mode: 'Markdown',
+    reply_markup: { inline_keyboard: buttons }
+  };
+  if (editMsgId) params.message_id = editMsgId;
+  
+  await sendTelegram(env.BOT_TOKEN, method, params);
+}
+
+// ==================== 账户管理 ====================
+async function sendAccountManager(chatId, userId, editMsgId, env) {
+  const accounts = await getAccountList(userId, env);
+  const active = await env.USER_TOKENS.get(\`active:\${userId}\`);
+
+  let text = '👤 *账户管理*\\n━━━━━━━━━━━━━━━━━━━━\\n\\n';
+  
+  if (accounts.length === 0) {
+    text += '📭 尚未绑定任何账户\\n\\n点击下方按钮添加';
+  } else {
+    text += \`已绑定 *\${accounts.length}* 个账户:\\n\\n\`;
+    accounts.forEach((email, i) => {
+      const isActive = email === active;
+      text += \`\${isActive ? '✅' : '⚪️'} \${i + 1}. \${email}\${isActive ? ' (当前)' : ''}\\n\`;
+    });
+  }
+
+  const buttons = [];
+  
+  accounts.forEach((email, i) => {
+    if (i % 2 === 0) buttons.push([]);
+    const row = buttons[buttons.length - 1];
+    const isActive = email === active;
+    row.push({
+      text: \`\${isActive ? '✅' : '📧'} \${email.substring(0, 15)}\`,
+      callback_data: \`sw:\${i}\`
+    });
+  });
+
+  await env.USER_TOKENS.put(\`accmap:\${userId}\`, JSON.stringify(accounts), { expirationTtl: 3600 });
+
+  buttons.push([
+    { text: '➕ 添加账户', callback_data: 'add' },
+    { text: '🗑️ 删除账户', callback_data: 'delmenu' }
+  ]);
+  buttons.push([{ text: '🔄 刷新', callback_data: 'acc:refresh' }]);
+
+  const method = editMsgId ? 'editMessageText' : 'sendMessage';
+  const params = {
+    chat_id: chatId,
+    text,
+    parse_mode: 'Markdown',
+    reply_markup: { inline_keyboard: buttons }
+  };
+  if (editMsgId) params.message_id = editMsgId;
+  
+  await sendTelegram(env.BOT_TOKEN, method, params);
+}
+
 // ==================== 添加账户 ====================
-async function sendLoginLink(chatId, userId, origin, env) {
+async function sendLoginLink(chatId, userId, env) {
+  const origin = await env.USER_TOKENS.get('origin');
   const nonce = crypto.randomUUID();
   await env.USER_TOKENS.put(\`nonce:\${userId}\`, nonce, { expirationTtl: 600 });
 
   const state = btoa(JSON.stringify({ userId, nonce }));
-
   const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
   authUrl.searchParams.set('client_id', env.GOOGLE_CLIENT_ID);
   authUrl.searchParams.set('redirect_uri', \`\${origin}/oauth/callback\`);
@@ -1226,56 +1501,47 @@ async function sendLoginLink(chatId, userId, origin, env) {
   authUrl.searchParams.set('prompt', 'consent');
   authUrl.searchParams.set('state', state);
 
-  const keyboard = {
-    inline_keyboard: [
-      [{ text: '🔐 点击授权 Gmail', url: authUrl.toString() }],
-      [{ text: '⬅️ 返回', callback_data: 'account:refresh' }]
-    ]
-  };
-
-  await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
+  await sendTelegram(env.BOT_TOKEN, 'sendMessage', {
     chat_id: chatId,
-    text: '🔐 *添加 Gmail 账户*\\n\\n请点击下方按钮进行 Google 授权\\n\\n🔒 使用 Google 官方 OAuth，安全可靠\\n📧 仅获取邮件读取和修改权限',
+    text: '🔐 *添加 Gmail 账户*\\n\\n请点击下方按钮授权',
     parse_mode: 'Markdown',
-    reply_markup: keyboard
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '🔐 授权 Gmail', url: authUrl.toString() }],
+        [{ text: '⬅️ 返回', callback_data: 'acc:refresh' }]
+      ]
+    }
   });
 }
 
-// ==================== 设置页面 ====================
+// ==================== 设置 ====================
 async function sendSettings(chatId, userId, env) {
-  const accounts = await getAccountList(userId, env);
-  const activeEmail = await env.USER_TOKENS.get(\`active:\${userId}\`);
-
-  // 检查推送状态
+  const active = await env.USER_TOKENS.get(\`active:\${userId}\`);
   let pushEnabled = false;
-  if (activeEmail) {
-    const pushData = await env.USER_TOKENS.get(\`push:\${userId}:\${activeEmail}\`, { type: 'json' });
-    pushEnabled = pushData?.enabled || false;
+  
+  if (active) {
+    const pushData = await env.USER_TOKENS.get(\`push:\${userId}:\${active}\`);
+    pushEnabled = pushData ? JSON.parse(pushData).enabled : false;
   }
 
-  let text = '⚙️ *设置*\\n' + '━'.repeat(20) + '\\n\\n';
-  text += \`👤 当前账户: \${activeEmail || '未绑定'}\\n\`;
-  text += \`📊 已绑定账户: \${accounts.length} 个\\n\`;
-  text += \`🔔 实时推送: \${pushEnabled ? '已开启' : '已关闭'}\\n\`;
+  let text = '⚙️ *设置*\\n━━━━━━━━━━━━━━━━━━━━\\n\\n';
+  text += \`👤 账户: \${active || '未绑定'}\\n\`;
+  text += \`🔔 推送: \${pushEnabled ? '已开启' : '已关闭'}\\n\`;
 
   const buttons = [
-    [{ text: '👤 账户管理', callback_data: 'account:refresh' }]
+    [{ text: '👤 账户管理', callback_data: 'acc:refresh' }]
   ];
 
-  // 推送开关（仅当有 PUBSUB_TOPIC 时显示）
-  if (env.PUBSUB_TOPIC && activeEmail) {
+  if (env.PUBSUB_TOPIC && active) {
     buttons.push([{
       text: pushEnabled ? '🔕 关闭推送' : '🔔 开启推送',
-      callback_data: pushEnabled ? 'push:disable' : 'push:enable'
+      callback_data: pushEnabled ? 'push:off' : 'push:on'
     }]);
   }
 
-  buttons.push([
-    { text: '✅ 全部已读', callback_data: 'action:readall' },
-    { text: '🔍 搜索帮助', callback_data: 'action:search_help' }
-  ]);
+  buttons.push([{ text: '🔍 搜索帮助', callback_data: 'help' }]);
 
-  await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
+  await sendTelegram(env.BOT_TOKEN, 'sendMessage', {
     chat_id: chatId,
     text,
     parse_mode: 'Markdown',
@@ -1285,967 +1551,543 @@ async function sendSettings(chatId, userId, env) {
 
 // ==================== 搜索帮助 ====================
 async function sendSearchHelp(chatId, env) {
-  const keyboard = {
-    inline_keyboard: [
-      [
-        { text: '📬 未读', callback_data: 'search:is:unread' },
-        { text: '⭐ 星标', callback_data: 'search:is:starred' },
-        { text: '📎 附件', callback_data: 'search:has:attachment' }
-      ],
-      [
-        { text: '📅 本周', callback_data: 'search:newer_than:7d' },
-        { text: '📆 本月', callback_data: 'search:newer_than:30d' }
-      ],
-      [
-        { text: '🔴 重要', callback_data: 'search:is:important' },
-        { text: '📤 已发送', callback_data: 'search:in:sent' }
-      ]
+  const text = '🔍 *搜索邮件*\\n\\n发送: 搜索 关键词\\n\\n*示例:*\\n• 搜索 会议\\n• 搜索 from:test@qq.com\\n• 搜索 subject:周报\\n• 搜索 has:attachment';
+
+  const buttons = [
+    [
+      { text: '📬 未读', callback_data: 'list:is:unread' },
+      { text: '⭐ 星标', callback_data: 'list:is:starred' },
+      { text: '📎 附件', callback_data: 'list:has:attachment' }
+    ],
+    [
+      { text: '📅 本周', callback_data: 'list:newer_than:7d' },
+      { text: '📆 本月', callback_data: 'list:newer_than:30d' }
     ]
-  };
+  ];
 
-  await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
+  await sendTelegram(env.BOT_TOKEN, 'sendMessage', {
     chat_id: chatId,
-    text: '🔍 *搜索邮件*\\n\\n直接发送搜索内容，例如：\\n• \`搜索 会议通知\`\\n• \`搜索 from:test@qq.com\`\\n• \`搜索 subject:周报\`\\n• \`搜索 has:attachment 发票\`\\n\\n或使用快捷搜索：',
+    text,
     parse_mode: 'Markdown',
-    reply_markup: keyboard
+    reply_markup: { inline_keyboard: buttons }
   });
-}
-
-// ==================== 邮件列表（分页）====================
-async function handleMailList(chatId, userId, query, pageToken, editMsgId, env) {
-  const tokenData = await getActiveToken(userId, env);
-  if (!tokenData) {
-    await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
-      chat_id: chatId,
-      text: '⚠️ 请先绑定 Gmail 账户\\n\\n点击 *👤 账户管理* → *➕ 添加账户*',
-      parse_mode: 'Markdown',
-      reply_markup: getMainKeyboard()
-    });
-    return;
-  }
-
-  try {
-    const listUrl = new URL('https://gmail.googleapis.com/gmail/v1/users/me/messages');
-    listUrl.searchParams.set('q', query);
-    listUrl.searchParams.set('maxResults', PAGE_SIZE.toString());
-    if (pageToken) {
-      listUrl.searchParams.set('pageToken', pageToken);
-    }
-
-    const listResp = await fetch(listUrl, {
-      headers: { Authorization: \`Bearer \${tokenData.access_token}\` }
-    });
-
-    if (!listResp.ok) {
-      throw new Error('获取邮件列表失败');
-    }
-
-    const listData = await listResp.json();
-    const messages = listData.messages || [];
-    const nextPageToken = listData.nextPageToken;
-
-    if (messages.length === 0) {
-      const text = \`📭 *\${query}*\\n\\n没有找到匹配的邮件\`;
-      const keyboard = {
-        inline_keyboard: [[{ text: '🔄 刷新', callback_data: \`refresh:\${query.substring(0, 40)}\` }]]
-      };
-
-      if (editMsgId) {
-        await telegramAPI(env.BOT_TOKEN, 'editMessageText', {
-          chat_id: chatId,
-          message_id: editMsgId,
-          text,
-          parse_mode: 'Markdown',
-          reply_markup: keyboard
-        });
-      } else {
-        await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
-          chat_id: chatId,
-          text,
-          parse_mode: 'Markdown',
-          reply_markup: keyboard
-        });
-      }
-      return;
-    }
-
-    // 获取邮件摘要
-    const summaries = [];
-    for (const msg of messages) {
-      const detailResp = await fetch(
-        \`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date\`,
-        { headers: { Authorization: \`Bearer \${tokenData.access_token}\` } }
-      );
-
-      if (detailResp.ok) {
-        const mail = await detailResp.json();
-        const headers = mail.payload?.headers || [];
-        const getHeader = (name) => headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value || '';
-
-        let from = getHeader('From');
-        const emailMatch = from.match(/[\\w.-]+@[\\w.-]+\\.\\w+/);
-        if (emailMatch) {
-          from = from.replace(emailMatch[0], '').replace(/[<>"]/g, '').trim() || emailMatch[0];
-        }
-
-        let dateStr = '';
-        try {
-          dateStr = formatBeijingDate(getHeader('Date'));
-        } catch {}
-
-        summaries.push({
-          id: msg.id,
-          from: from.substring(0, 20),
-          subject: (getHeader('Subject') || '(无主题)').substring(0, 30),
-          date: dateStr,
-          isUnread: mail.labelIds?.includes('UNREAD'),
-          isStarred: mail.labelIds?.includes('STARRED')
-        });
-      }
-    }
-
-    // 构建消息文本
-    let text = \`📬 *\${query}*\\n\${'━'.repeat(20)}\\n\\n\`;
-    summaries.forEach((m, i) => {
-      const status = m.isUnread ? '🔵' : '⚪️';
-      const star = m.isStarred ? '⭐' : '';
-      text += \`\${status}\${star} *\${i + 1}.* \${m.subject}\\n    📤 \${m.from} · \${m.date}\\n\\n\`;
-    });
-
-    // 构建按钮
-    const buttons = [];
-
-    // 邮件查看按钮（每行3个）
-    for (let i = 0; i < summaries.length; i += 3) {
-      const row = [];
-      for (let j = i; j < Math.min(i + 3, summaries.length); j++) {
-        row.push({
-          text: \`\${summaries[j].isUnread ? '🔵' : '📧'} \${j + 1}\`,
-          callback_data: \`mail:\${summaries[j].id}\`
-        });
-      }
-      buttons.push(row);
-    }
-
-    // 分页按钮
-    const navRow = [];
-    navRow.push({ text: '🔄 刷新', callback_data: \`refresh:\${query.substring(0, 40)}\` });
-    if (nextPageToken) {
-      const pageId = Date.now().toString(36);
-      await env.USER_TOKENS.put(\`page:\${userId}:\${pageId}\`, JSON.stringify({
-        query,
-        token: nextPageToken
-      }), { expirationTtl: 3600 });
-      navRow.push({ text: '➡️ 下一页', callback_data: \`page:\${pageId}\` });
-    }
-    buttons.push(navRow);
-
-    buttons.push([
-      { text: '✅ 全部已读', callback_data: 'action:readall' },
-      { text: '🏠 菜单', callback_data: 'action:menu' }
-    ]);
-
-    const keyboard = { inline_keyboard: buttons };
-
-    if (editMsgId) {
-      await telegramAPI(env.BOT_TOKEN, 'editMessageText', {
-        chat_id: chatId,
-        message_id: editMsgId,
-        text,
-        parse_mode: 'Markdown',
-        reply_markup: keyboard
-      });
-    } else {
-      await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
-        chat_id: chatId,
-        text,
-        parse_mode: 'Markdown',
-        reply_markup: keyboard
-      });
-    }
-  } catch (error) {
-    console.error('Mail list error:', error);
-    await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
-      chat_id: chatId,
-      text: \`❌ 获取邮件失败: \${error.message}\`,
-      reply_markup: getMainKeyboard()
-    });
-  }
-}
-
-// ==================== 邮件详情 ====================
-async function handleMailDetail(chatId, userId, mailId, editMsgId, showFull, env) {
-  const tokenData = await getActiveToken(userId, env);
-  if (!tokenData) return;
-
-  try {
-    const detailResp = await fetch(
-      \`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${mailId}?format=full\`,
-      { headers: { Authorization: \`Bearer \${tokenData.access_token}\` } }
-    );
-
-    if (!detailResp.ok) {
-      throw new Error('获取邮件失败');
-    }
-
-    const mail = await detailResp.json();
-    const headers = mail.payload?.headers || [];
-    const getHeader = (name) => headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value || '';
-
-    const from = getHeader('From');
-    const subject = getHeader('Subject') || '(无主题)';
-    const date = getHeader('Date');
-    const isUnread = mail.labelIds?.includes('UNREAD');
-    const isStarred = mail.labelIds?.includes('STARRED');
-
-    // 解析发件人
-    let fromName = from;
-    let fromEmail = from;
-    const emailMatch = from.match(/[\\w.-]+@[\\w.-]+\\.\\w+/);
-    if (emailMatch) {
-      fromEmail = emailMatch[0];
-      fromName = from.replace(emailMatch[0], '').replace(/[<>"]/g, '').trim() || fromEmail;
-    }
-
-    // 格式化日期为北京时间
-    let dateStr = date;
-    try {
-      dateStr = formatBeijingDate(date);
-    } catch {}
-
-    // 提取内容
-    const content = extractEmailContent(mail.payload, showFull ? MAX_CONTENT_LENGTH : PREVIEW_LENGTH);
-    const attachments = detectAttachments(mail.payload);
-
-    // 构建消息
-    let text = \`\${isUnread ? '🔵 未读' : '⚪️ 已读'}\${isStarred ? ' ⭐' : ''} | *\${subject}*\\n\${'━'.repeat(20)}\\n\`;
-    text += \`👤 \${fromName}\\n📧 \${fromEmail}\\n🕐 \${dateStr}\\n\`;
-    if (attachments.length > 0) {
-      text += \`📎 附件 (\${attachments.length})\\n\`;
-    }
-    text += \`\${'━'.repeat(20)}\\n\\n\${content}\`;
-
-    // 构建按钮
-    const buttons = [];
-
-    // 主操作按钮
-    buttons.push([
-      { text: isUnread ? '✅ 已读' : '📩 未读', callback_data: \`\${isUnread ? 'read' : 'unread'}:\${mailId}\` },
-      { text: isStarred ? '⭐ 取消' : '⭐ 星标', callback_data: \`\${isStarred ? 'unstar' : 'star'}:\${mailId}\` }
-    ]);
-
-    // 更多操作
-    const moreRow = [];
-    if (!showFull && content.length >= PREVIEW_LENGTH) {
-      moreRow.push({ text: '📖 查看完整', callback_data: \`full:\${mailId}\` });
-    }
-    moreRow.push({ text: '🗑️ 删除', callback_data: \`delete:\${mailId}\` });
-    buttons.push(moreRow);
-
-    // 搜索发件人
-    buttons.push([{
-      text: \`🔍 搜索 \${fromName.substring(0, 10)} 的邮件\`,
-      callback_data: \`search:from:\${fromEmail.substring(0, 30)}\`
-    }]);
-
-    // 附件按钮
-    if (attachments.length > 0) {
-      const attRow = [];
-      for (let i = 0; i < Math.min(attachments.length, 3); i++) {
-        attRow.push({
-          text: \`📎 \${attachments[i].name.substring(0, 10)}\`,
-          callback_data: \`att:\${mailId}:\${i}\`
-        });
-      }
-      buttons.push(attRow);
-    }
-
-    buttons.push([{ text: '⬅️ 返回列表', callback_data: 'action:back' }]);
-
-    const keyboard = { inline_keyboard: buttons };
-
-    if (editMsgId) {
-      await telegramAPI(env.BOT_TOKEN, 'editMessageText', {
-        chat_id: chatId,
-        message_id: editMsgId,
-        text,
-        parse_mode: 'Markdown',
-        reply_markup: keyboard
-      });
-    } else {
-      await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
-        chat_id: chatId,
-        text,
-        parse_mode: 'Markdown',
-        reply_markup: keyboard
-      });
-    }
-  } catch (error) {
-    console.error('Mail detail error:', error);
-    await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
-      chat_id: chatId,
-      text: \`❌ 获取邮件详情失败: \${error.message}\`
-    });
-  }
-}
-
-// 提取邮件内容
-function extractEmailContent(payload, maxLength) {
-  let bodyData = null;
-
-  function findBody(part, mimeType) {
-    if (part.mimeType === mimeType && part.body?.data) {
-      return part.body.data;
-    }
-    if (part.parts) {
-      for (const p of part.parts) {
-        const result = findBody(p, mimeType);
-        if (result) return result;
-      }
-    }
-    return null;
-  }
-
-  bodyData = findBody(payload, 'text/plain') || findBody(payload, 'text/html') || payload.body?.data;
-
-  if (!bodyData) return '(无内容)';
-
-  try {
-    const base64 = bodyData.replace(/-/g, '+').replace(/_/g, '/');
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    let text = new TextDecoder('utf-8').decode(bytes);
-
-    // 处理 HTML
-    text = text.replace(/<style[^>]*>[\\s\\S]*?<\\/style>/gi, '');
-    text = text.replace(/<script[^>]*>[\\s\\S]*?<\\/script>/gi, '');
-    text = text.replace(/<br\\s*\\/?>/gi, '\\n');
-    text = text.replace(/<\\/p>/gi, '\\n');
-    text = text.replace(/<\\/div>/gi, '\\n');
-    text = text.replace(/<\\/tr>/gi, '\\n');
-    text = text.replace(/<\\/li>/gi, '\\n');
-    text = text.replace(/<[^>]*>/g, '');
-
-    // 解码 HTML 实体
-    text = text.replace(/&nbsp;/gi, ' ');
-    text = text.replace(/&amp;/gi, '&');
-    text = text.replace(/&lt;/gi, '<');
-    text = text.replace(/&gt;/gi, '>');
-    text = text.replace(/&quot;/gi, '"');
-
-    // 清理空白
-    text = text.replace(/[ \\t]+/g, ' ');
-    text = text.replace(/\\n\\s*\\n/g, '\\n\\n');
-    text = text.trim();
-
-    if (text.length > maxLength) {
-      text = text.substring(0, maxLength) + '\\n\\n... (点击查看完整)';
-    }
-
-    return text || '(无内容)';
-  } catch (e) {
-    return '(无法解析内容)';
-  }
-}
-
-// 检测附件
-function detectAttachments(payload) {
-  const attachments = [];
-
-  function scan(part) {
-    if (part.filename && part.body?.attachmentId) {
-      attachments.push({
-        name: part.filename,
-        mimeType: part.mimeType,
-        size: part.body.size || 0,
-        attachmentId: part.body.attachmentId
-      });
-    }
-    if (part.parts) {
-      part.parts.forEach(scan);
-    }
-  }
-
-  scan(payload);
-  return attachments;
-}
-
-// ==================== 邮箱统计 ====================
-async function handleStats(chatId, userId, editMsgId, env) {
-  const tokenData = await getActiveToken(userId, env);
-  if (!tokenData) {
-    await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
-      chat_id: chatId,
-      text: '⚠️ 请先绑定 Gmail 账户',
-      reply_markup: getMainKeyboard()
-    });
-    return;
-  }
-
-  try {
-    const today = getTodayDate();
-    const accessToken = tokenData.access_token;
-
-    const [profileResp, unreadResp, todayResp, starredResp] = await Promise.all([
-      fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
-        headers: { Authorization: \`Bearer \${accessToken}\` }
-      }),
-      fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?q=is:unread&maxResults=1', {
-        headers: { Authorization: \`Bearer \${accessToken}\` }
-      }),
-      fetch(\`https://gmail.googleapis.com/gmail/v1/users/me/messages?q=after:\${today}&maxResults=1\`, {
-        headers: { Authorization: \`Bearer \${accessToken}\` }
-      }),
-      fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?q=is:starred&maxResults=1', {
-        headers: { Authorization: \`Bearer \${accessToken}\` }
-      })
-    ]);
-
-    const profile = await profileResp.json();
-    const unread = await unreadResp.json();
-    const todayMail = await todayResp.json();
-    const starred = await starredResp.json();
-
-    let text = '📊 *邮箱统计*\\n' + '━'.repeat(20) + '\\n\\n';
-    text += \`📧 \${profile.emailAddress || 'N/A'}\\n\\n\`;
-    text += \`📬 未读邮件: *\${unread.resultSizeEstimate || 0}*\\n\`;
-    text += \`📅 今日邮件: *\${todayMail.resultSizeEstimate || 0}*\\n\`;
-    text += \`⭐ 星标邮件: *\${starred.resultSizeEstimate || 0}*\\n\`;
-    text += \`📁 邮件总数: *\${profile.messagesTotal || 0}*\\n\`;
-
-    const keyboard = {
-      inline_keyboard: [
-        [
-          { text: '📬 查看未读', callback_data: 'search:is:unread' },
-          { text: '📅 查看今日', callback_data: \`search:after:\${today}\` }
-        ],
-        [
-          { text: '⭐ 查看星标', callback_data: 'search:is:starred' },
-          { text: '🔄 刷新', callback_data: 'stats:refresh' }
-        ]
-      ]
-    };
-
-    if (editMsgId) {
-      await telegramAPI(env.BOT_TOKEN, 'editMessageText', {
-        chat_id: chatId,
-        message_id: editMsgId,
-        text,
-        parse_mode: 'Markdown',
-        reply_markup: keyboard
-      });
-    } else {
-      await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
-        chat_id: chatId,
-        text,
-        parse_mode: 'Markdown',
-        reply_markup: keyboard
-      });
-    }
-  } catch (error) {
-    console.error('Stats error:', error);
-    await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
-      chat_id: chatId,
-      text: \`❌ 获取统计失败: \${error.message}\`,
-      reply_markup: getMainKeyboard()
-    });
-  }
 }
 
 // ==================== 批量已读 ====================
-async function handleMarkAllRead(chatId, userId, env) {
-  const tokenData = await getActiveToken(userId, env);
-  if (!tokenData) {
-    await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
+async function markAllRead(chatId, userId, env) {
+  const account = await getActiveAccount(userId, env);
+  
+  if (!account) {
+    await sendTelegram(env.BOT_TOKEN, 'sendMessage', {
       chat_id: chatId,
-      text: '⚠️ 请先绑定 Gmail 账户',
+      text: '⚠️ 请先绑定账户',
       reply_markup: getMainKeyboard()
     });
     return;
   }
 
-  try {
-    // 获取未读邮件
-    const listResp = await fetch(
-      'https://gmail.googleapis.com/gmail/v1/users/me/messages?q=is:unread&maxResults=100',
-      { headers: { Authorization: \`Bearer \${tokenData.access_token}\` } }
-    );
-    const listData = await listResp.json();
-    const messages = listData.messages || [];
+  const listResp = await fetch(
+    'https://gmail.googleapis.com/gmail/v1/users/me/messages?q=is:unread&maxResults=100',
+    { headers: { Authorization: \`Bearer \${account.access_token}\` } }
+  );
+  const listData = await listResp.json();
 
-    if (messages.length === 0) {
-      await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
-        chat_id: chatId,
-        text: '✅ 没有未读邮件',
-        reply_markup: getMainKeyboard()
-      });
-      return;
-    }
-
-    // 批量标记已读
-    await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/batchModify', {
-      method: 'POST',
-      headers: {
-        Authorization: \`Bearer \${tokenData.access_token}\`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        ids: messages.map(m => m.id),
-        removeLabelIds: ['UNREAD']
-      })
-    });
-
-    await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
+  if (!listData.messages?.length) {
+    await sendTelegram(env.BOT_TOKEN, 'sendMessage', {
       chat_id: chatId,
-      text: \`✅ 已将 *\${messages.length}* 封邮件标记为已读\`,
-      parse_mode: 'Markdown',
+      text: '✅ 没有未读邮件',
       reply_markup: getMainKeyboard()
     });
-  } catch (error) {
-    console.error('Mark all read error:', error);
-    await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
-      chat_id: chatId,
-      text: \`❌ 操作失败: \${error.message}\`,
-      reply_markup: getMainKeyboard()
-    });
+    return;
   }
+
+  await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/batchModify', {
+    method: 'POST',
+    headers: {
+      Authorization: \`Bearer \${account.access_token}\`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      ids: listData.messages.map(m => m.id),
+      removeLabelIds: ['UNREAD']
+    })
+  });
+
+  await sendTelegram(env.BOT_TOKEN, 'sendMessage', {
+    chat_id: chatId,
+    text: \`✅ 已将 *\${listData.messages.length}* 封邮件标记为已读\`,
+    parse_mode: 'Markdown',
+    reply_markup: getMainKeyboard()
+  });
 }
 
 // ==================== 回调处理 ====================
-async function handleCallbackQuery(query, env, origin) {
+async function handleCallback(query, env) {
   const chatId = query.message.chat.id;
-  const userId = query.from.id.toString();
+  const userId = String(query.from.id);
   const msgId = query.message.message_id;
   const data = query.data;
 
-  await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', {
+  await sendTelegram(env.BOT_TOKEN, 'answerCallbackQuery', {
     callback_query_id: query.id
   });
 
-  // 账户管理
-  if (data === 'account:add') {
-    await sendLoginLink(chatId, userId, origin, env);
+  if (data === 'stats:refresh') {
+    await sendStats(chatId, userId, msgId, env);
     return;
   }
 
-  if (data === 'account:refresh') {
-    await handleAccountManage(chatId, userId, msgId, env);
+  if (data === 'acc:refresh') {
+    await sendAccountManager(chatId, userId, msgId, env);
     return;
   }
 
-  if (data === 'account:delete_menu') {
-    const accounts = await getAccountList(userId, env);
-    if (accounts.length === 0) {
-      await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', {
-        callback_query_id: query.id,
-        text: '没有可删除的账户',
-        show_alert: true
-      });
-      return;
+  if (data === 'add') {
+    await sendLoginLink(chatId, userId, env);
+    return;
+  }
+
+  if (data.startsWith('sw:')) {
+    const index = parseInt(data.substring(3));
+    const accRaw = await env.USER_TOKENS.get(\`accmap:\${userId}\`);
+    if (accRaw) {
+      const accounts = JSON.parse(accRaw);
+      if (accounts[index]) {
+        await env.USER_TOKENS.put(\`active:\${userId}\`, accounts[index]);
+      }
     }
+    await sendAccountManager(chatId, userId, msgId, env);
+    return;
+  }
 
-    const buttons = accounts.map(email => ([{
+  if (data === 'delmenu') {
+    const accounts = await getAccountList(userId, env);
+    const buttons = accounts.map((email, i) => ([{
       text: \`🗑️ \${email}\`,
-      callback_data: \`delaccount:\${email.substring(0, 50)}\`
+      callback_data: \`del:\${i}\`
     }]));
-    buttons.push([{ text: '⬅️ 返回', callback_data: 'account:refresh' }]);
+    buttons.push([{ text: '⬅️ 返回', callback_data: 'acc:refresh' }]);
 
-    await telegramAPI(env.BOT_TOKEN, 'editMessageText', {
+    await sendTelegram(env.BOT_TOKEN, 'editMessageText', {
       chat_id: chatId,
       message_id: msgId,
-      text: '🗑️ *选择要删除的账户*\\n\\n删除后需要重新授权',
-      parse_mode: 'Markdown',
+      text: '🗑️ 选择要删除的账户:',
       reply_markup: { inline_keyboard: buttons }
     });
     return;
   }
 
-  if (data.startsWith('delaccount:')) {
-    const email = data.substring(11);
-    await env.USER_TOKENS.delete(\`token:\${userId}:\${email}\`);
-    await env.USER_TOKENS.delete(\`push:\${userId}:\${email}\`);
+  if (data.startsWith('del:')) {
+    const index = parseInt(data.substring(4));
+    const accounts = await getAccountList(userId, env);
+    const email = accounts[index];
+    
+    if (email) {
+      await env.USER_TOKENS.delete(\`token:\${userId}:\${email}\`);
+      await env.USER_TOKENS.delete(\`push:\${userId}:\${email}\`);
+      accounts.splice(index, 1);
+      await env.USER_TOKENS.put(\`accounts:\${userId}\`, JSON.stringify(accounts));
+      
+      const active = await env.USER_TOKENS.get(\`active:\${userId}\`);
+      if (active === email && accounts.length > 0) {
+        await env.USER_TOKENS.put(\`active:\${userId}\`, accounts[0]);
+      } else if (accounts.length === 0) {
+        await env.USER_TOKENS.delete(\`active:\${userId}\`);
+      }
+    }
+    
+    await sendAccountManager(chatId, userId, msgId, env);
+    return;
+  }
 
-    let accounts = await getAccountList(userId, env);
-    accounts = accounts.filter(e => e !== email);
-    await env.USER_TOKENS.put(\`accounts:\${userId}\`, JSON.stringify(accounts));
+  if (data === 'help') {
+    await sendSearchHelp(chatId, env);
+    return;
+  }
 
-    const activeEmail = await env.USER_TOKENS.get(\`active:\${userId}\`);
-    if (activeEmail === email) {
-      await env.USER_TOKENS.put(\`active:\${userId}\`, accounts[0] || '');
+  if (data.startsWith('list:')) {
+    const query = data.substring(5);
+    await sendMailList(chatId, userId, query, null, msgId, env);
+    return;
+  }
+
+  if (data.startsWith('ref:')) {
+    const query = data.substring(4);
+    await sendMailList(chatId, userId, query, null, msgId, env);
+    return;
+  }
+
+  if (data.startsWith('pg:')) {
+    const ts = data.substring(3);
+    const pageKey = \`page:\${userId}:\${ts}\`;
+    const pageData = await env.USER_TOKENS.get(pageKey);
+    if (pageData) {
+      const { query, token } = JSON.parse(pageData);
+      await sendMailList(chatId, userId, query, token, msgId, env);
+    }
+    return;
+  }
+
+  if (data.startsWith('m:')) {
+    const index = parseInt(data.substring(2));
+    const mailId = await getMailId(userId, index, env);
+    if (mailId) {
+      await sendMailDetail(chatId, userId, mailId, msgId, false, env);
+    }
+    return;
+  }
+
+  if (data.startsWith('do:')) {
+    const action = data.substring(3);
+    const mailId = await env.USER_TOKENS.get(\`current:\${userId}\`);
+    
+    if (!mailId) return;
+
+    const account = await getActiveAccount(userId, env);
+    if (!account) return;
+
+    if (action === 'full') {
+      await sendMailDetail(chatId, userId, mailId, msgId, true, env);
+      return;
     }
 
-    await handleAccountManage(chatId, userId, msgId, env);
+    const actions = {
+      read: { removeLabelIds: ['UNREAD'] },
+      unread: { addLabelIds: ['UNREAD'] },
+      star: { addLabelIds: ['STARRED'] },
+      unstar: { removeLabelIds: ['STARRED'] }
+    };
+
+    if (actions[action]) {
+      await fetch(\`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${mailId}/modify\`, {
+        method: 'POST',
+        headers: {
+          Authorization: \`Bearer \${account.access_token}\`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(actions[action])
+      });
+      await sendMailDetail(chatId, userId, mailId, msgId, false, env);
+      return;
+    }
+
+    if (action === 'delete') {
+      await fetch(\`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${mailId}/trash\`, {
+        method: 'POST',
+        headers: { Authorization: \`Bearer \${account.access_token}\` }
+      });
+      await sendTelegram(env.BOT_TOKEN, 'editMessageText', {
+        chat_id: chatId,
+        message_id: msgId,
+        text: '🗑️ 已移至垃圾箱',
+        reply_markup: { inline_keyboard: [[{ text: '⬅️ 返回列表', callback_data: 'back' }]] }
+      });
+      return;
+    }
+  }
+
+  if (data.startsWith('sf:')) {
+    const email = data.substring(3);
+    await sendMailList(chatId, userId, \`from:\${email}\`, null, msgId, env);
     return;
   }
 
-  if (data.startsWith('switch:')) {
-    const email = data.substring(7);
-    await env.USER_TOKENS.put(\`active:\${userId}\`, email);
-    await handleAccountManage(chatId, userId, msgId, env);
+  if (data.startsWith('att:')) {
+    const index = parseInt(data.substring(4));
+    const mailId = await env.USER_TOKENS.get(\`current:\${userId}\`);
+    const account = await getActiveAccount(userId, env);
+    
+    if (!mailId || !account) return;
+
+    const mailResp = await fetch(
+      \`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${mailId}?format=full\`,
+      { headers: { Authorization: \`Bearer \${account.access_token}\` } }
+    );
+    const mail = await mailResp.json();
+    const attachments = getAttachments(mail.payload);
+    const att = attachments[index];
+
+    if (!att) return;
+
+    const attResp = await fetch(
+      \`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${mailId}/attachments/\${att.id}\`,
+      { headers: { Authorization: \`Bearer \${account.access_token}\` } }
+    );
+    const attData = await attResp.json();
+
+    const base64 = attData.data.replace(/-/g, '+').replace(/_/g, '/');
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+    const formData = new FormData();
+    formData.append('chat_id', chatId);
+    formData.append('document', new Blob([bytes]), att.name);
+
+    await fetch(\`https://api.telegram.org/bot\${env.BOT_TOKEN}/sendDocument\`, {
+      method: 'POST',
+      body: formData
+    });
     return;
   }
 
-  // 统计刷新
-  if (data === 'stats:refresh') {
-    await handleStats(chatId, userId, msgId, env);
+  if (data === 'back') {
+    const lastQuery = await env.USER_TOKENS.get(\`lastquery:\${userId}\`) || 'in:inbox';
+    await sendMailList(chatId, userId, lastQuery, null, msgId, env);
     return;
   }
 
-  // 推送开关
-  if (data === 'push:enable' || data === 'push:disable') {
-    const activeEmail = await env.USER_TOKENS.get(\`active:\${userId}\`);
-    if (!activeEmail) return;
+  if (data === 'readall') {
+    await markAllRead(chatId, userId, env);
+    return;
+  }
 
-    const enable = data === 'push:enable';
+  if (data === 'push:on' || data === 'push:off') {
+    const enable = data === 'push:on';
+    const active = await env.USER_TOKENS.get(\`active:\${userId}\`);
+    
+    if (!active) return;
 
     if (enable && env.PUBSUB_TOPIC) {
-      const tokenData = await getActiveToken(userId, env);
-      if (tokenData) {
-        try {
-          const watchResp = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/watch', {
-            method: 'POST',
-            headers: {
-              Authorization: \`Bearer \${tokenData.access_token}\`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              topicName: env.PUBSUB_TOPIC,
-              labelIds: ['INBOX']
-            })
-          });
-          const watchData = await watchResp.json();
-
-          await env.USER_TOKENS.put(\`push:\${userId}:\${activeEmail}\`, JSON.stringify({
-            enabled: true,
-            historyId: watchData.historyId,
-            watchExpiry: parseInt(watchData.expiration)
-          }));
-        } catch (e) {
-          console.error('Watch error:', e);
-        }
+      const account = await getActiveAccount(userId, env);
+      if (account) {
+        const watchResp = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/watch', {
+          method: 'POST',
+          headers: {
+            Authorization: \`Bearer \${account.access_token}\`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            topicName: env.PUBSUB_TOPIC,
+            labelIds: ['INBOX']
+          })
+        });
+        const watchData = await watchResp.json();
+        
+        await env.USER_TOKENS.put(\`push:\${userId}:\${active}\`, JSON.stringify({
+          enabled: true,
+          historyId: watchData.historyId,
+          expiry: watchData.expiration
+        }));
       }
     } else {
-      await env.USER_TOKENS.put(\`push:\${userId}:\${activeEmail}\`, JSON.stringify({ enabled: false }));
+      await env.USER_TOKENS.put(\`push:\${userId}:\${active}\`, JSON.stringify({ enabled: false }));
     }
 
     await sendSettings(chatId, userId, env);
-    return;
-  }
-
-  // 操作处理
-  if (data.startsWith('action:')) {
-    const action = data.split(':')[1];
-    switch (action) {
-      case 'menu':
-        await sendWelcome(chatId, userId, env);
-        break;
-      case 'back':
-        await handleMailList(chatId, userId, 'in:inbox', null, msgId, env);
-        break;
-      case 'readall':
-        await handleMarkAllRead(chatId, userId, env);
-        break;
-      case 'search_help':
-        await sendSearchHelp(chatId, env);
-        break;
-    }
-    return;
-  }
-
-  // 需要 Token 的操作
-  const tokenData = await getActiveToken(userId, env);
-  if (!tokenData) {
-    await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', {
-      callback_query_id: query.id,
-      text: '请先绑定账户',
-      show_alert: true
-    });
-    return;
-  }
-
-  // 刷新列表
-  if (data.startsWith('refresh:')) {
-    const q = data.substring(8);
-    await handleMailList(chatId, userId, q || 'in:inbox', null, msgId, env);
-    return;
-  }
-
-  // 翻页
-  if (data.startsWith('page:')) {
-    const pageId = data.split(':')[1];
-    const pageData = await env.USER_TOKENS.get(\`page:\${userId}:\${pageId}\`, { type: 'json' });
-    if (pageData) {
-      await handleMailList(chatId, userId, pageData.query, pageData.token, msgId, env);
-    }
-    return;
-  }
-
-  // 查看邮件
-  if (data.startsWith('mail:')) {
-    const mailId = data.split(':')[1];
-    await handleMailDetail(chatId, userId, mailId, msgId, false, env);
-    return;
-  }
-
-  // 查看完整
-  if (data.startsWith('full:')) {
-    const mailId = data.split(':')[1];
-    await handleMailDetail(chatId, userId, mailId, msgId, true, env);
-    return;
-  }
-
-  // 搜索
-  if (data.startsWith('search:')) {
-    const q = data.substring(7);
-    await handleMailList(chatId, userId, q, null, msgId, env);
-    return;
-  }
-
-  // 标记已读
-  if (data.startsWith('read:')) {
-    const mailId = data.split(':')[1];
-    await fetch(\`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${mailId}/modify\`, {
-      method: 'POST',
-      headers: {
-        Authorization: \`Bearer \${tokenData.access_token}\`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ removeLabelIds: ['UNREAD'] })
-    });
-    await handleMailDetail(chatId, userId, mailId, msgId, false, env);
-    return;
-  }
-
-  // 标记未读
-  if (data.startsWith('unread:')) {
-    const mailId = data.split(':')[1];
-    await fetch(\`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${mailId}/modify\`, {
-      method: 'POST',
-      headers: {
-        Authorization: \`Bearer \${tokenData.access_token}\`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ addLabelIds: ['UNREAD'] })
-    });
-    await handleMailDetail(chatId, userId, mailId, msgId, false, env);
-    return;
-  }
-
-  // 加星标
-  if (data.startsWith('star:')) {
-    const mailId = data.split(':')[1];
-    await fetch(\`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${mailId}/modify\`, {
-      method: 'POST',
-      headers: {
-        Authorization: \`Bearer \${tokenData.access_token}\`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ addLabelIds: ['STARRED'] })
-    });
-    await handleMailDetail(chatId, userId, mailId, msgId, false, env);
-    return;
-  }
-
-  // 取消星标
-  if (data.startsWith('unstar:')) {
-    const mailId = data.split(':')[1];
-    await fetch(\`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${mailId}/modify\`, {
-      method: 'POST',
-      headers: {
-        Authorization: \`Bearer \${tokenData.access_token}\`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ removeLabelIds: ['STARRED'] })
-    });
-    await handleMailDetail(chatId, userId, mailId, msgId, false, env);
-    return;
-  }
-
-  // 删除邮件
-  if (data.startsWith('delete:')) {
-    const mailId = data.split(':')[1];
-    await fetch(\`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${mailId}/trash\`, {
-      method: 'POST',
-      headers: { Authorization: \`Bearer \${tokenData.access_token}\` }
-    });
-
-    await telegramAPI(env.BOT_TOKEN, 'editMessageText', {
-      chat_id: chatId,
-      message_id: msgId,
-      text: '🗑️ 邮件已移至垃圾箱',
-      reply_markup: {
-        inline_keyboard: [[{ text: '⬅️ 返回列表', callback_data: 'action:back' }]]
-      }
-    });
-    return;
-  }
-
-  // 下载附件
-  if (data.startsWith('att:')) {
-    const parts = data.split(':');
-    const mailId = parts[1];
-    const attIndex = parseInt(parts[2]);
-
-    try {
-      const mailResp = await fetch(
-        \`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${mailId}?format=full\`,
-        { headers: { Authorization: \`Bearer \${tokenData.access_token}\` } }
-      );
-      const mail = await mailResp.json();
-      const attachments = detectAttachments(mail.payload);
-      const att = attachments[attIndex];
-
-      if (!att) {
-        await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', {
-          callback_query_id: query.id,
-          text: '附件不存在',
-          show_alert: true
-        });
-        return;
-      }
-
-      if (att.size > MAX_ATTACHMENT_SIZE) {
-        await telegramAPI(env.BOT_TOKEN, 'answerCallbackQuery', {
-          callback_query_id: query.id,
-          text: '附件过大（>20MB）',
-          show_alert: true
-        });
-        return;
-      }
-
-      const attResp = await fetch(
-        \`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${mailId}/attachments/\${att.attachmentId}\`,
-        { headers: { Authorization: \`Bearer \${tokenData.access_token}\` } }
-      );
-      const attData = await attResp.json();
-
-      const base64 = attData.data.replace(/-/g, '+').replace(/_/g, '/');
-      const binary = atob(base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-      }
-
-      const formData = new FormData();
-      formData.append('chat_id', chatId);
-      formData.append('document', new Blob([bytes], { type: att.mimeType }), att.name);
-
-      await fetch(\`https://api.telegram.org/bot\${env.BOT_TOKEN}/sendDocument\`, {
-        method: 'POST',
-        body: formData
-      });
-    } catch (e) {
-      console.error('Attachment error:', e);
-      await telegramAPI(env.BOT_TOKEN, 'sendMessage', {
-        chat_id: chatId,
-        text: \`❌ 下载附件失败: \${e.message}\`
-      });
-    }
-    return;
   }
 }
 
-// ==================== 首页 ====================
-function generateHomePage() {
+// ==================== Pub/Sub 推送 ====================
+async function handlePubSubPush(message, env) {
+  if (!message.message?.data) return;
+
+  const data = JSON.parse(atob(message.message.data));
+  const { emailAddress, historyId } = data;
+
+  const list = await env.USER_TOKENS.list({ prefix: 'push:' });
+  
+  for (const key of list.keys) {
+    const pushData = JSON.parse(await env.USER_TOKENS.get(key.name) || '{}');
+    if (!pushData.enabled) continue;
+
+    const parts = key.name.split(':');
+    const usrId = parts[1];
+    const email = parts.slice(2).join(':');
+    
+    if (email !== emailAddress) continue;
+
+    const tokenRaw = await env.USER_TOKENS.get(\`token:\${usrId}:\${email}\`);
+    if (!tokenRaw) continue;
+
+    let token = JSON.parse(tokenRaw);
+    
+    if (Date.now() > token.expiry - 60000) {
+      const refreshed = await refreshToken(token.refresh_token, env);
+      if (refreshed) {
+        token.access_token = refreshed.access_token;
+        token.expiry = Date.now() + refreshed.expires_in * 1000;
+        await env.USER_TOKENS.put(\`token:\${usrId}:\${email}\`, JSON.stringify(token));
+      } else {
+        continue;
+      }
+    }
+
+    const historyResp = await fetch(
+      \`https://gmail.googleapis.com/gmail/v1/users/me/history?startHistoryId=\${pushData.historyId || historyId}&historyTypes=messageAdded&labelId=INBOX\`,
+      { headers: { Authorization: \`Bearer \${token.access_token}\` } }
+    );
+    const historyData = await historyResp.json();
+
+    if (historyData.history) {
+      for (const h of historyData.history) {
+        if (h.messagesAdded) {
+          for (const m of h.messagesAdded) {
+            const mailResp = await fetch(
+              \`https://gmail.googleapis.com/gmail/v1/users/me/messages/\${m.message.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject\`,
+              { headers: { Authorization: \`Bearer \${token.access_token}\` } }
+            );
+            const mail = await mailResp.json();
+            const headers = mail.payload?.headers || [];
+            const from = headers.find(h => h.name === 'From')?.value || '';
+            const subject = headers.find(h => h.name === 'Subject')?.value || '(无主题)';
+
+            let fromName = from;
+            const emailMatch = from.match(/[\\w.-]+@[\\w.-]+\\.[a-z]+/i);
+            if (emailMatch) {
+              fromName = from.replace(emailMatch[0], '').replace(/[<>"]/g, '').trim() || emailMatch[0];
+            }
+
+            await env.USER_TOKENS.put(\`active:\${usrId}\`, email);
+            await env.USER_TOKENS.put(\`current:\${usrId}\`, m.message.id, { expirationTtl: 3600 });
+
+            const viewLink = await generateViewLink(usrId, m.message.id, email, env);
+
+            await sendTelegram(env.BOT_TOKEN, 'sendMessage', {
+              chat_id: usrId,
+              text: \`🔔 *新邮件*\\n━━━━━━━━━━━━━━━━\\n\\n📧 \${email}\\n👤 \${fromName}\\n📋 \${subject}\`,
+              parse_mode: 'Markdown',
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '🌐 在浏览器中查看', url: viewLink }],
+                  [{ text: '📖 在 Telegram 查看', callback_data: 'do:full' }],
+                  [
+                    { text: '✅ 已读', callback_data: 'do:read' },
+                    { text: '🗑️ 删除', callback_data: 'do:delete' }
+                  ]
+                ]
+              }
+            });
+          }
+        }
+      }
+    }
+
+    pushData.historyId = historyData.historyId || historyId;
+    await env.USER_TOKENS.put(key.name, JSON.stringify(pushData));
+  }
+}
+
+// ==================== 续期 Watch ====================
+async function renewAllWatches(env) {
+  if (!env.PUBSUB_TOPIC) return;
+
+  const list = await env.USER_TOKENS.list({ prefix: 'push:' });
+  
+  for (const key of list.keys) {
+    const pushData = JSON.parse(await env.USER_TOKENS.get(key.name) || '{}');
+    if (!pushData.enabled) continue;
+
+    const parts = key.name.split(':');
+    const usrId = parts[1];
+    const email = parts.slice(2).join(':');
+
+    const tokenRaw = await env.USER_TOKENS.get(\`token:\${usrId}:\${email}\`);
+    if (!tokenRaw) continue;
+
+    let token = JSON.parse(tokenRaw);
+    
+    if (Date.now() > token.expiry - 60000) {
+      const refreshed = await refreshToken(token.refresh_token, env);
+      if (refreshed) {
+        token.access_token = refreshed.access_token;
+        token.expiry = Date.now() + refreshed.expires_in * 1000;
+        await env.USER_TOKENS.put(\`token:\${usrId}:\${email}\`, JSON.stringify(token));
+      } else {
+        continue;
+      }
+    }
+
+    const watchResp = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/watch', {
+      method: 'POST',
+      headers: {
+        Authorization: \`Bearer \${token.access_token}\`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        topicName: env.PUBSUB_TOPIC,
+        labelIds: ['INBOX']
+      })
+    });
+    const watchData = await watchResp.json();
+
+    if (watchData.historyId) {
+      pushData.historyId = watchData.historyId;
+      pushData.expiry = watchData.expiration;
+      await env.USER_TOKENS.put(key.name, JSON.stringify(pushData));
+    }
+  }
+}
+
+// ==================== 页面模板 ====================
+function getHomePage() {
   return \`<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gmail Telegram Bot</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: #fff;
-    }
-    .container { text-align: center; padding: 40px; }
-    .emoji { font-size: 4rem; margin-bottom: 1rem; }
-    h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
-    p { opacity: 0.9; margin-bottom: 1.5rem; }
-    .status {
-      display: inline-block;
-      background: rgba(255,255,255,0.2);
-      padding: 12px 24px;
-      border-radius: 50px;
-      font-weight: 500;
-    }
-    .features {
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
-      flex-wrap: wrap;
-      margin-top: 2rem;
-    }
-    .feature {
-      background: rgba(255,255,255,0.1);
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 0.9rem;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="emoji">📧🤖</div>
-    <h1>Gmail Telegram Bot</h1>
-    <p>通过 Telegram 安全访问您的 Gmail 邮箱</p>
-    <div class="status">✅ 服务运行中</div>
-    <div class="features">
-      <span class="feature">🔒 OAuth 认证</span>
-      <span class="feature">👥 多账户</span>
-      <span class="feature">🔔 实时推送</span>
-      <span class="feature">📎 附件下载</span>
-    </div>
-  </div>
-</body>
-</html>\`;
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gmail Bot</title>
+<style>body{font-family:system-ui;background:#1a1a2e;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
+.box{text-align:center;padding:40px}.emoji{font-size:4rem;margin-bottom:1rem}h1{margin:0 0 .5rem}p{opacity:.8;margin:0 0 1.5rem}
+.badge{background:rgba(255,255,255,.2);padding:8px 16px;border-radius:20px;display:inline-block}</style></head>
+<body><div class="box"><div class="emoji">📧🤖</div><h1>Gmail Telegram Bot</h1><p>服务运行中</p>
+<span class="badge">✅ Active</span></div></body></html>\`;
+}
+
+function getResultPage(success, message) {
+  const color = success ? '#10b981' : '#ef4444';
+  const icon = success ? '✓' : '✕';
+  const title = success ? '授权成功' : '授权失败';
+  
+  return \`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>\${title}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;
+background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);padding:20px}
+.card{background:rgba(255,255,255,0.1);backdrop-filter:blur(20px);border-radius:24px;padding:48px;text-align:center;
+max-width:420px;width:100%;border:1px solid rgba(255,255,255,0.2);box-shadow:0 25px 50px -12px rgba(0,0,0,0.5)}
+.icon{width:80px;height:80px;border-radius:50%;background:\${color};display:flex;align-items:center;justify-content:center;
+font-size:40px;font-weight:bold;color:#fff;margin:0 auto 24px;box-shadow:0 10px 40px \${color}66}
+h1{color:#fff;font-size:28px;margin-bottom:16px}
+.email{background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.3);padding:16px 20px;border-radius:12px;
+margin:24px 0;word-break:break-all;color:#e0e7ff;font-size:15px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:14px 32px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+color:#fff;text-decoration:none;border-radius:12px;font-weight:600;font-size:16px;transition:all 0.3s;box-shadow:0 4px 15px rgba(102,126,234,0.4)}
+.btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(102,126,234,0.5)}
+.features{display:flex;justify-content:center;gap:24px;margin-top:32px;flex-wrap:wrap}
+.feature{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,0.7);font-size:13px}
+</style></head>
+<body><div class="card">
+<div class="icon">\${icon}</div>
+<h1>\${title}</h1>
+<div class="email">\${success ? '📧 ' + message : '❌ ' + message}</div>
+<a href="https://t.me" class="btn">📱 打开 Telegram</a>
+\${success ? '<div class="features"><span class="feature">🔒 安全加密</span><span class="feature">⚡ 实时同步</span><span class="feature">🌐 网页预览</span></div>' : ''}
+</div></body></html>\`;
 }`;
 
-    // 填充代码
+    // 显示代码
     document.getElementById('workerCode').textContent = workerCode;
-    if (typeof Prism !== 'undefined') {
-      Prism.highlightAll();
-    }
+    Prism.highlightAll();
 
     // 复制功能
     document.getElementById('copyBtn').addEventListener('click', async () => {
-      const btn = document.getElementById('copyBtn');
-      const icon = document.getElementById('copyIcon');
-      const text = document.getElementById('copyText');
-
       try {
         await navigator.clipboard.writeText(workerCode);
-        icon.textContent = '✅';
-        text.textContent = '已复制!';
-        btn.classList.remove('bg-purple-600', 'hover:bg-purple-700');
-        btn.classList.add('bg-green-600');
-
+        document.getElementById('copyIcon').textContent = '✅';
+        document.getElementById('copyText').textContent = '已复制!';
         setTimeout(() => {
-          icon.textContent = '📋';
-          text.textContent = '复制代码';
-          btn.classList.remove('bg-green-600');
-          btn.classList.add('bg-purple-600', 'hover:bg-purple-700');
+          document.getElementById('copyIcon').textContent = '📋';
+          document.getElementById('copyText').textContent = '复制代码';
         }, 2000);
-      } catch (err) {
-        // Fallback
-        const textarea = document.createElement('textarea');
-        textarea.value = workerCode;
-        document.body.appendChild(textarea);
-        textarea.select();
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = workerCode;
+        document.body.appendChild(ta);
+        ta.select();
         document.execCommand('copy');
-        document.body.removeChild(textarea);
-
-        icon.textContent = '✅';
-        text.textContent = '已复制!';
+        document.body.removeChild(ta);
+        document.getElementById('copyIcon').textContent = '✅';
+        document.getElementById('copyText').textContent = '已复制!';
       }
     });
   </script>
