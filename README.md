@@ -14,5 +14,6 @@ Telegram 的 HTML 解析器是一个“精简版”，只支持以下标签：
 ​代码块：<pre>pre-formatted block</pre>
 ​隐藏内容（剧透）：<span class="tg-spoiler">spoiler</span>
 ​注意：不支持 <div>, <span> (除剧透外), <img>, <br>, <table> 等。
+注意：​在 Telegram Bot API 中，如果不显式指定 parse_mode，服务器会默认将 text 视为纯文本。
 ```
 4. 容易掉线（需要重新授权），掉线后账号状态没有更新和通知
