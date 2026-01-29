@@ -29,6 +29,25 @@ export default {
       if (path === '/oauth/callback') {
         return await handleOAuthCallback(request, env);
       }
+      // 隐私政策
+      if (path === '/privacy') {
+        return new Response(getPrivacyPage(), {
+          headers: { 'Content-Type': 'text/html; charset=utf-8' }
+        });
+      }
+      
+      // 服务条款
+      if (path === '/terms') {
+        return new Response(getTermsPage(), {
+          headers: { 'Content-Type': 'text/html; charset=utf-8' }
+        });
+      }
+      // Google 站点验证
+      if (path === '/googlefef45634f33fc82b.html') {
+        return new Response('google-site-verification: googlefef45634f33fc82b.html', {
+          headers: { 'Content-Type': 'text/html; charset=utf-8' }
+        });
+      }
       
       // 邮件网页预览
       if (path.startsWith('/mail/')) {
@@ -1801,17 +1820,535 @@ async function renewAllWatches(env) {
   }
 }
 
-// ==================== 页面模板 ====================
+// ==================== 解决方案 ====================
+
 function getHomePage() {
   return `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gmail Bot</title>
-<style>body{font-family:system-ui;background:#1a1a2e;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
-.box{text-align:center;padding:40px}.emoji{font-size:4rem;margin-bottom:1rem}h1{margin:0 0 .5rem}p{opacity:.8;margin:0 0 1.5rem}
-.badge{background:rgba(255,255,255,.2);padding:8px 16px;border-radius:20px;display:inline-block}</style></head>
-<body><div class="box"><div class="emoji">📧🤖</div><h1>Gmail Telegram Bot</h1><p>服务运行中</p>
-<span class="badge">✅ Active</span></div></body></html>`;
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- 🔴 关键1：title标签中ONLY使用应用名称 -->
+  <title>星霜的邮件助手</title>
+  
+  <!-- 🔴 关键2：Meta标签明确应用名称 -->
+  <meta name="application-name" content="星霜的邮件助手">
+  <meta name="description" content="通过 Telegram 安全便捷地访问和管理您的邮箱">
+  
+  <!-- 隐私政策链接标记 -->
+  <link rel="privacy-policy" href="/privacy">
+  <meta name="privacy-policy" content="https://emailbot.loushi.de5.net/privacy">
+  
+  <style>
+    /* 样式代码保持不变 */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #fff;
+    }
+    
+    .top-nav {
+      background: rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(10px);
+      padding: 15px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    
+    .top-nav-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    /* 🔴 关键3：nav-brand 也必须只使用应用名称 */
+    .nav-brand {
+      font-size: 20px;
+      font-weight: 700;
+      color: white;
+      text-decoration: none;
+    }
+    
+    .nav-links {
+      display: flex;
+      gap: 25px;
+      align-items: center;
+    }
+    
+    .nav-link {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 15px;
+      transition: all 0.3s ease;
+      padding: 8px 15px;
+      border-radius: 6px;
+    }
+    
+    .nav-link:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+    
+    .nav-link-privacy {
+      background: rgba(255, 255, 255, 0.2);
+      font-weight: 600;
+    }
+    
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+    
+    .logo {
+      font-size: 80px;
+      margin-bottom: 20px;
+    }
+    
+    /* 🔴 关键4：H1 标签样式 */
+    .title {
+      font-size: 48px;
+      font-weight: 700;
+      margin-bottom: 30px;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    
+    /* 分离的描述文字样式 */
+    .description {
+      font-size: 20px;
+      opacity: 0.9;
+      margin-bottom: 30px;
+    }
+    
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(10px);
+      padding: 10px 24px;
+      border-radius: 25px;
+      font-weight: 600;
+      font-size: 16px;
+    }
+    
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    
+    .content {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 30px;
+      margin-bottom: 60px;
+    }
+    
+    .card {
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 30px;
+      border: 1px solid rgba(255,255,255,0.2);
+      transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      background: rgba(255,255,255,0.2);
+    }
+    
+    .card-icon {
+      font-size: 40px;
+      margin-bottom: 15px;
+    }
+    
+    .card h2 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    
+    .card p {
+      opacity: 0.9;
+      line-height: 1.6;
+      font-size: 15px;
+    }
+    
+    .features {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 40px;
+      margin-bottom: 40px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .features h2 {
+      font-size: 32px;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+    
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 15px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 12px;
+      transition: all 0.3s ease;
+    }
+    
+    .feature-item:hover {
+      background: rgba(255,255,255,0.15);
+      transform: translateX(5px);
+    }
+    
+    .feature-icon {
+      font-size: 24px;
+    }
+    
+    .feature-text {
+      font-size: 15px;
+      font-weight: 500;
+    }
+    
+    .privacy-notice {
+      background: rgba(255,255,255,0.15);
+      border-left: 4px solid white;
+      padding: 30px;
+      border-radius: 12px;
+      margin: 40px 0;
+      font-size: 15px;
+      line-height: 1.8;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .privacy-notice strong {
+      font-size: 20px;
+      display: block;
+      margin-bottom: 15px;
+    }
+    
+    /* 🔴 关键5：确保应用名称在文本中独立显示 */
+    .app-name {
+      font-weight: 700;
+    }
+    
+    .privacy-links {
+      margin-top: 20px;
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .privacy-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: white;
+      text-decoration: none;
+      background: rgba(255,255,255,0.25);
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 16px;
+      transition: all 0.3s ease;
+      border: 2px solid rgba(255,255,255,0.3);
+    }
+    
+    .privacy-link:hover {
+      background: rgba(255,255,255,0.35);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    
+    .cta-section {
+      text-align: center;
+      margin: 60px 0 40px;
+    }
+    
+    .cta-button {
+      display: inline-block;
+      padding: 18px 40px;
+      background: white;
+      color: #667eea;
+      text-decoration: none;
+      border-radius: 30px;
+      font-weight: 700;
+      font-size: 18px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    
+    .cta-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+      background: #f0f0f0;
+    }
+    
+    .footer {
+      text-align: center;
+      padding: 40px 20px;
+      border-top: 1px solid rgba(255,255,255,0.2);
+      margin-top: 60px;
+    }
+    
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .footer-link {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    
+    .footer-link:hover {
+      background: rgba(255,255,255,0.1);
+      transform: translateY(-2px);
+    }
+    
+    .copyright {
+      opacity: 0.8;
+      font-size: 14px;
+      margin-top: 20px;
+      line-height: 1.8;
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.5;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .nav-links {
+        gap: 10px;
+        font-size: 13px;
+      }
+      
+      .nav-link {
+        padding: 6px 10px;
+      }
+      
+      .title {
+        font-size: 36px;
+      }
+      
+      .description {
+        font-size: 16px;
+      }
+      
+      .content {
+        grid-template-columns: 1fr;
+      }
+      
+      .features {
+        padding: 25px;
+      }
+      
+      .feature-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .footer-links {
+        flex-direction: column;
+        gap: 15px;
+      }
+      
+      .privacy-links {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 顶部导航栏 -->
+  <nav class="top-nav">
+    <div class="top-nav-container">
+      <!-- 🔴 关键6：导航品牌名只使用应用名称 -->
+      <a href="/" class="nav-brand">星霜的邮件助手</a>
+      <div class="nav-links">
+        <a href="/privacy" class="nav-link nav-link-privacy" rel="privacy-policy">隐私政策</a>
+        <a href="/terms" class="nav-link">服务条款</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <header class="header">
+      <div class="logo">📧🤖</div>
+      
+      <!-- 🔴 🔴 🔴 最关键：H1标签ONLY包含应用名称，不包含任何描述 -->
+      <h1 class="title">星霜的邮件助手</h1>
+      
+      <!-- 🔴 关键7：描述文字独立出来，不放在H1中 -->
+      <p class="description">通过 Telegram 安全便捷地访问和管理您的邮箱</p>
+      
+      <div class="status-badge">
+        <span class="status-dot"></span>
+        服务正常运行
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="card">
+        <div class="card-icon">🔐</div>
+        <h2>安全可靠</h2>
+        <p>采用 Google OAuth 2.0 授权，数据加密传输，不存储任何邮件内容，完全保护您的隐私。</p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">⚡</div>
+        <h2>即时同步</h2>
+        <p>实时接收新邮件推送通知，随时随地通过 Telegram 查看和管理您的邮箱。</p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">🌐</div>
+        <h2>多账户支持</h2>
+        <p>支持同时管理多个邮箱账户，轻松切换，提高工作效率。</p>
+      </div>
+    </div>
+
+    <section class="features">
+      <h2>🚀 核心功能</h2>
+      <div class="feature-grid">
+        <div class="feature-item">
+          <span class="feature-icon">📬</span>
+          <span class="feature-text">查看收件箱</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🔍</span>
+          <span class="feature-text">强大的搜索</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">⭐</span>
+          <span class="feature-text">标记星标</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">📊</span>
+          <span class="feature-text">邮件统计</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🔔</span>
+          <span class="feature-text">实时推送</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">📎</span>
+          <span class="feature-text">附件下载</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🌐</span>
+          <span class="feature-text">网页预览</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">✅</span>
+          <span class="feature-text">批量操作</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 突出的隐私政策部分 -->
+    <div class="privacy-notice">
+      <strong>🔒 隐私保护与数据安全</strong>
+      <p>
+        <!-- 🔴 关键8：正文中使用 <span class="app-name"> 突出应用名称 -->
+        <span class="app-name">星霜的邮件助手</span>重视您的隐私。我们不会存储、分享或出售您的任何邮件数据。
+        所有数据处理都在加密环境中实时进行，处理完成后立即删除。
+        您可以随时撤销授权，删除所有数据。
+      </p>
+      <p style="margin-top: 15px;">
+        了解我们如何保护您的数据，请查看我们的隐私政策和服务条款：
+      </p>
+      <div class="privacy-links">
+        <a href="/privacy" class="privacy-link" rel="privacy-policy">
+          📄 隐私政策
+        </a>
+        <a href="/terms" class="privacy-link">
+          📋 服务条款
+        </a>
+      </div>
+    </div>
+
+    <section class="cta-section">
+      <a href="tg://resolve" class="cta-button">
+        📱 立即在 Telegram 中使用
+      </a>
+    </section>
+
+    <footer class="footer">
+      <nav class="footer-links">
+        <a href="/" class="footer-link">首页</a>
+        <a href="/privacy" class="footer-link" rel="privacy-policy">隐私政策</a>
+        <a href="/terms" class="footer-link">服务条款</a>
+        <a href="tg://resolve" class="footer-link">Telegram</a>
+        <a href="mailto:xiaobainuli@gmail.com" class="footer-link">联系我们</a>
+      </nav>
+      
+      <div class="copyright">
+        <!-- 🔴 关键9：版权声明中的应用名称也要独立、清晰 -->
+        <p><span class="app-name">星霜的邮件助手</span> © 2026 - 保留所有权利</p>
+        <p style="margin-top: 10px;">
+          本服务使用 Google API 服务，遵守 
+          <a href="https://developers.google.com/terms/api-services-user-data-policy" 
+             target="_blank" 
+             rel="noopener noreferrer"
+             style="color: white; text-decoration: underline;">
+            Google API 服务用户数据政策
+          </a>
+        </p>
+        <p style="margin-top: 10px;">
+          <a href="/privacy" rel="privacy-policy" style="color: white; text-decoration: underline;">隐私政策</a> | 
+          <a href="/terms" style="color: white; text-decoration: underline;">服务条款</a>
+        </p>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>`;
 }
+
 
 function getResultPage(success, message) {
   const color = success ? '#10b981' : '#ef4444';
@@ -1845,4 +2382,411 @@ color:#fff;text-decoration:none;border-radius:12px;font-weight:600;font-size:16p
 <a href="tg://resolve" class="btn">📱 打开 Telegram</a>
 ${success ? '<div class="features"><span class="feature">🔒 安全加密</span><span class="feature">⚡ 实时同步</span><span class="feature">🌐 网页预览</span></div>' : ''}
 </div></body></html>`;
+}
+
+// ==================== 隐私政策页面 ====================
+function getPrivacyPage() {
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>隐私政策 - Gmail Telegram Bot</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 40px 30px;
+      text-align: center;
+    }
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+    .header p {
+      opacity: 0.9;
+      font-size: 14px;
+    }
+    .content {
+      padding: 40px 30px;
+      color: #333;
+      line-height: 1.8;
+    }
+    .content h2 {
+      color: #667eea;
+      margin-top: 30px;
+      margin-bottom: 15px;
+      font-size: 20px;
+    }
+    .content h2:first-child {
+      margin-top: 0;
+    }
+    .content p {
+      margin-bottom: 15px;
+    }
+    .content ul {
+      margin: 15px 0;
+      padding-left: 25px;
+    }
+    .content li {
+      margin-bottom: 10px;
+    }
+    .highlight {
+      background: #f0f4ff;
+      padding: 20px;
+      border-left: 4px solid #667eea;
+      border-radius: 4px;
+      margin: 20px 0;
+    }
+    .footer {
+      background: #f8f9fa;
+      padding: 30px;
+      text-align: center;
+      border-top: 1px solid #e0e0e0;
+    }
+    .footer a {
+      color: #667eea;
+      text-decoration: none;
+      margin: 0 10px;
+      font-weight: 500;
+    }
+    .footer a:hover {
+      text-decoration: underline;
+    }
+    .date {
+      color: #999;
+      font-size: 14px;
+      margin-top: 15px;
+    }
+    @media (max-width: 600px) {
+      .header { padding: 30px 20px; }
+      .content { padding: 30px 20px; }
+      .header h1 { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📧 隐私政策</h1>
+      <p>Gmail Telegram Bot - 我们重视您的隐私</p>
+    </div>
+    
+    <div class="content">
+      <div class="highlight">
+        <strong>简而言之：</strong>我们不会存储、分享或出售您的任何邮件数据。所有数据处理都在加密环境中实时进行，处理完成后立即删除。
+      </div>
+
+      <h2>1. 数据收集与使用</h2>
+      <p>Gmail Telegram Bot 使用 Google OAuth 2.0 授权访问您的 Gmail 邮箱。我们收集和使用的数据包括：</p>
+      <ul>
+        <li><strong>Gmail 邮件数据</strong>：用于在 Telegram 中展示邮件列表、内容和附件</li>
+        <li><strong>Gmail 账户信息</strong>：邮箱地址，用于识别和管理多个账户</li>
+        <li><strong>Telegram 用户ID</strong>：用于关联您的 Telegram 账户与 Gmail 授权</li>
+      </ul>
+
+      <h2>2. 数据存储</h2>
+      <p>我们采用最小化数据存储原则：</p>
+      <ul>
+        <li><strong>OAuth Token</strong>：存储在 Cloudflare KV 中，用于访问您的 Gmail（加密存储）</li>
+        <li><strong>临时数据</strong>：邮件列表、邮件内容等数据仅在 Cloudflare Workers 运行时内存中临时处理，处理完成后立即删除</li>
+        <li><strong>邮件内容</strong>：我们不会永久存储任何邮件内容</li>
+        <li><strong>预览链接</strong>：网页预览链接 1 小时后自动失效</li>
+      </ul>
+
+      <h2>3. 数据安全</h2>
+      <ul>
+        <li>所有数据传输使用 HTTPS 加密</li>
+        <li>OAuth Token 加密存储在 Cloudflare KV</li>
+        <li>应用运行在 Cloudflare 全球安全网络上</li>
+        <li>严格的访问控制，只有授权用户才能访问自己的数据</li>
+      </ul>
+
+      <h2>4. 数据共享</h2>
+      <p><strong>我们绝不会将您的数据出售、出租或分享给第三方。</strong>您的邮件数据仅在以下情况下使用：</p>
+      <ul>
+        <li>响应您的请求（如查看邮件、搜索、标记等）</li>
+        <li>实现应用功能（如邮件推送通知）</li>
+      </ul>
+
+      <h2>5. Google API 服务使用</h2>
+      <p>Gmail Telegram Bot 使用 Google API 服务，并遵守 <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" style="color: #667eea;">Google API 服务用户数据政策</a>，包括有限使用要求。</p>
+
+      <h2>6. 您的权利</h2>
+      <p>您拥有以下权利：</p>
+      <ul>
+        <li><strong>访问权</strong>：您可以随时通过 Telegram Bot 访问您的数据</li>
+        <li><strong>删除权</strong>：您可以在 Bot 中删除账户，我们将立即删除所有相关数据</li>
+        <li><strong>撤销授权</strong>：您可以在 <a href="https://myaccount.google.com/permissions" target="_blank" style="color: #667eea;">Google 账户权限设置</a> 中随时撤销应用授权</li>
+        <li><strong>数据导出</strong>：您的所有邮件数据始终在您的 Gmail 账户中，可以随时导出</li>
+      </ul>
+
+      <h2>7. Cookie 和追踪技术</h2>
+      <p>本应用不使用 Cookie、不进行用户追踪、不投放广告。</p>
+
+      <h2>8. 儿童隐私</h2>
+      <p>本服务面向 13 岁及以上用户。我们不会故意收集 13 岁以下儿童的个人信息。</p>
+
+      <h2>9. 隐私政策更新</h2>
+      <p>我们可能会不时更新本隐私政策。更新后的政策将在本页面发布，重大变更会在 Bot 中通知用户。</p>
+
+      <h2>10. 联系我们</h2>
+      <p>如果您对本隐私政策有任何疑问，请通过以下方式联系我们：</p>
+      <ul>
+        <li>Telegram: 在 Bot 中发送反馈</li>
+        <li>Email: xiaobainuli@gmail.com</li>
+      </ul>
+
+      <div class="date">
+        最后更新日期：2026年1月29日
+      </div>
+    </div>
+
+    <div class="footer">
+      <a href="/">返回首页</a>
+      <a href="/terms">服务条款</a>
+      <a href="tg://resolve">打开 Telegram</a>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+// ==================== 服务条款页面 ====================
+function getTermsPage() {
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>服务条款 - Gmail Telegram Bot</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 40px 30px;
+      text-align: center;
+    }
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+    .header p {
+      opacity: 0.9;
+      font-size: 14px;
+    }
+    .content {
+      padding: 40px 30px;
+      color: #333;
+      line-height: 1.8;
+    }
+    .content h2 {
+      color: #667eea;
+      margin-top: 30px;
+      margin-bottom: 15px;
+      font-size: 20px;
+    }
+    .content h2:first-child {
+      margin-top: 0;
+    }
+    .content p {
+      margin-bottom: 15px;
+    }
+    .content ul {
+      margin: 15px 0;
+      padding-left: 25px;
+    }
+    .content li {
+      margin-bottom: 10px;
+    }
+    .highlight {
+      background: #fff3cd;
+      padding: 20px;
+      border-left: 4px solid #ffc107;
+      border-radius: 4px;
+      margin: 20px 0;
+    }
+    .footer {
+      background: #f8f9fa;
+      padding: 30px;
+      text-align: center;
+      border-top: 1px solid #e0e0e0;
+    }
+    .footer a {
+      color: #667eea;
+      text-decoration: none;
+      margin: 0 10px;
+      font-weight: 500;
+    }
+    .footer a:hover {
+      text-decoration: underline;
+    }
+    .date {
+      color: #999;
+      font-size: 14px;
+      margin-top: 15px;
+    }
+    @media (max-width: 600px) {
+      .header { padding: 30px 20px; }
+      .content { padding: 30px 20px; }
+      .header h1 { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📜 服务条款</h1>
+      <p>Gmail Telegram Bot - 使用条款与协议</p>
+    </div>
+    
+    <div class="content">
+      <div class="highlight">
+        <strong>重要提示：</strong>使用本服务即表示您同意这些条款。如果您不同意，请不要使用本服务。
+      </div>
+
+      <h2>1. 服务说明</h2>
+      <p>Gmail Telegram Bot（以下简称"本服务"）是一个通过 Telegram 访问和管理 Gmail 邮箱的工具。本服务允许您：</p>
+      <ul>
+        <li>通过 Telegram 查看 Gmail 邮件</li>
+        <li>搜索、标记、删除邮件</li>
+        <li>接收新邮件推送通知</li>
+        <li>管理多个 Gmail 账户</li>
+      </ul>
+
+      <h2>2. 使用资格</h2>
+      <ul>
+        <li>您必须年满 13 岁才能使用本服务</li>
+        <li>您必须拥有有效的 Google 账户和 Telegram 账户</li>
+        <li>您必须遵守 Google 和 Telegram 的服务条款</li>
+      </ul>
+
+      <h2>3. 账户安全</h2>
+      <p>您有责任：</p>
+      <ul>
+        <li>保护您的 Telegram 账户安全</li>
+        <li>不与他人共享您的授权访问</li>
+        <li>发现未经授权的访问时立即撤销授权</li>
+        <li>定期检查 <a href="https://myaccount.google.com/permissions" target="_blank" style="color: #667eea;">Google 账户权限</a></li>
+      </ul>
+
+      <h2>4. 可接受使用</h2>
+      <p>您同意不会：</p>
+      <ul>
+        <li>使用本服务进行非法活动</li>
+        <li>尝试破解、反向工程或干扰本服务</li>
+        <li>滥用服务资源（如过度请求）</li>
+        <li>访问他人的 Gmail 账户</li>
+        <li>利用本服务发送垃圾邮件或恶意内容</li>
+      </ul>
+
+      <h2>5. 服务限制</h2>
+      <ul>
+        <li>本服务可能会有使用频率限制</li>
+        <li>某些功能可能需要额外的 Google API 配额</li>
+        <li>我们保留随时修改、暂停或终止服务的权利</li>
+        <li>服务可能因维护而暂时不可用</li>
+      </ul>
+
+      <h2>6. 免责声明</h2>
+      <p><strong>本服务按"原样"提供，不提供任何明示或暗示的保证。</strong>我们不保证：</p>
+      <ul>
+        <li>服务将不间断或无错误</li>
+        <li>服务满足您的特定需求</li>
+        <li>通过服务获取的结果准确或可靠</li>
+      </ul>
+
+      <h2>7. 责任限制</h2>
+      <p>在法律允许的最大范围内：</p>
+      <ul>
+        <li>我们不对任何间接、偶然、特殊或后果性损害负责</li>
+        <li>我们不对数据丢失、业务中断或利润损失负责</li>
+        <li>您使用本服务的风险由您自行承担</li>
+      </ul>
+
+      <h2>8. 知识产权</h2>
+      <ul>
+        <li>本服务的所有权利归开发者所有</li>
+        <li>您的邮件内容归您所有</li>
+        <li>我们不会声称对您的数据拥有任何权利</li>
+      </ul>
+
+      <h2>9. 第三方服务</h2>
+      <p>本服务依赖以下第三方服务：</p>
+      <ul>
+        <li><strong>Google Gmail API</strong>：受 <a href="https://developers.google.com/terms" target="_blank" style="color: #667eea;">Google API 服务条款</a> 约束</li>
+        <li><strong>Telegram Bot API</strong>：受 <a href="https://telegram.org/tos" target="_blank" style="color: #667eea;">Telegram 服务条款</a> 约束</li>
+        <li><strong>Cloudflare Workers</strong>：服务托管平台</li>
+      </ul>
+      <p>我们对这些第三方服务不承担责任。</p>
+
+      <h2>10. 终止使用</h2>
+      <p>您可以随时停止使用本服务：</p>
+      <ul>
+        <li>在 Bot 中删除您的账户</li>
+        <li>在 <a href="https://myaccount.google.com/permissions" target="_blank" style="color: #667eea;">Google 账户设置</a> 中撤销授权</li>
+      </ul>
+      <p>我们也可能在以下情况下终止您的访问：</p>
+      <ul>
+        <li>您违反了这些服务条款</li>
+        <li>您滥用服务资源</li>
+        <li>法律要求</li>
+      </ul>
+
+      <h2>11. 条款修改</h2>
+      <p>我们保留随时修改这些条款的权利。重大变更会通过 Bot 通知用户。继续使用服务即表示您接受修改后的条款。</p>
+
+      <h2>12. 适用法律</h2>
+      <p>这些条款受中华人民共和国法律管辖。</p>
+
+      <h2>13. 联系方式</h2>
+      <p>如有任何疑问，请联系：</p>
+      <ul>
+        <li>Telegram: 在 Bot 中发送反馈</li>
+        <li>Email: xiaobainuli@gmail.com</li>
+      </ul>
+
+      <div class="date">
+        最后更新日期：2026年1月29日
+      </div>
+    </div>
+
+    <div class="footer">
+      <a href="/">返回首页</a>
+      <a href="/privacy">隐私政策</a>
+      <a href="tg://resolve">打开 Telegram</a>
+    </div>
+  </div>
+</body>
+</html>`;
 }
