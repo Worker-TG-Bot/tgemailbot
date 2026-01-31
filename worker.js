@@ -48,6 +48,46 @@ export default {
           headers: { 'Content-Type': 'text/html; charset=utf-8' }
         });
       }
+      // robots.txt
+      if (path === '/robots.txt') {
+        const robotsTxt = `User-agent: *
+Allow: /
+
+Sitemap: https://emailbot.loushi.de5.net/sitemap.xml`;
+        
+        return new Response(robotsTxt, {
+          headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+        });
+      }
+      
+      // sitemap.xml
+      if (path === '/sitemap.xml') {
+        const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://emailbot.loushi.de5.net/</loc>
+    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://emailbot.loushi.de5.net/privacy</loc>
+    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://emailbot.loushi.de5.net/terms</loc>
+    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+</urlset>`;
+        
+        return new Response(sitemap, {
+          headers: { 'Content-Type': 'application/xml; charset=utf-8' }
+        });
+      }
       
       // 邮件网页预览
       if (path.startsWith('/mail/')) {
@@ -130,6 +170,72 @@ function getTodayTimestamp() {
   const beijingMidnight = beijingMs - (beijingMs % dayMs);
   return Math.floor((beijingMidnight - offset) / 1000);
 }
+// ==================== 完整的格式化函数（推荐版本） ====================
+function formatQueryForDisplay(query) {
+  const fromMatch = query.match(/^from:(.+)$/);
+  if (fromMatch) {
+    return `📤 发件人：\n<code>${fromMatch[1]}</code>`;
+  }
+
+  // to: 查询
+  const toMatch = query.match(/^to:(.+)$/);
+  if (toMatch) {
+    return `📥 收件人\n${toMatch[1]}`;
+  }
+
+  // subject: 查询
+  const subjectMatch = query.match(/^subject:(.+)$/);
+  if (subjectMatch) {
+    return `📋 主题：${subjectMatch[1]}`;
+  }
+
+  // cc: 抄送
+  const ccMatch = query.match(/^cc:(.+)$/);
+  if (ccMatch) {
+    return `📧 抄送\n${ccMatch[1]}`;
+  }
+
+  // bcc: 密送
+  const bccMatch = query.match(/^bcc:(.+)$/);
+  if (bccMatch) {
+    return `📧 密送\n${bccMatch[1]}`;
+  }
+
+  // 预定义查询
+  const predefinedQueries = {
+    'in:inbox': '📬 收件箱',
+    'is:unread': '🔵 未读邮件',
+    'is:starred': '⭐ 星标邮件',
+    'has:attachment': '📎 有附件',
+    'in:sent': '📮 已发送',
+    'in:drafts': '📝 草稿箱',
+    'in:spam': '🗑️ 垃圾邮件',
+    'in:trash': '🗑️ 回收站',
+    'is:important': '❗ 重要邮件',
+    'is:read': '📖 已读邮件'
+  };
+
+  if (predefinedQueries[query]) {
+    return predefinedQueries[query];
+  }
+
+  // 日期查询
+  const afterMatch = query.match(/^after:(\d{4}\/\d{1,2}\/\d{1,2})$/);
+  if (afterMatch) {
+    return `📅 ${afterMatch[1]} 之后`;
+  }
+
+  const beforeMatch = query.match(/^before:(\d{4}\/\d{1,2}\/\d{1,2})$/);
+  if (beforeMatch) {
+    return `📅 ${beforeMatch[1]} 之前`;
+  }
+
+  // 复杂查询或包含多个条件
+  // 将冒号替换为中文冒号，避免被识别为协议
+  // 但保留邮箱中的@不变
+  return query.replace(/:/g, '：');
+}
+
 
 // ==================== Telegram API ====================
 async function sendTelegram(token, method, data) {
@@ -687,7 +793,8 @@ async function sendMailList(chatId, userId, query, pageToken, editMsgId, env) {
     const method = editMsgId ? 'editMessageText' : 'sendMessage';
     const params = {
       chat_id: chatId,
-      text: `📭 ${query}\n\n没有找到匹配的邮件`,
+      text: ` ${formatQueryForDisplay(query)}\n\n没有找到匹配的邮件`,
+      parse_mode: 'HTML',  // ✅ 添加这一行，支持HTML链接
       reply_markup: {
         inline_keyboard: [[{ text: '🔄 刷新', callback_data: `ref:${query.substring(0, 50)}` }]]
       }
@@ -697,35 +804,51 @@ async function sendMailList(chatId, userId, query, pageToken, editMsgId, env) {
     return;
   }
 
-  const mails = [];
-  for (const msg of listData.messages) {
-    const detailResp = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`,
-      { headers: { Authorization: `Bearer ${account.access_token}` } }
-    );
-    const detail = await detailResp.json();
-    const headers = detail.payload?.headers || [];
-    const getHeader = (n) => headers.find(h => h.name.toLowerCase() === n.toLowerCase())?.value || '';
+const mails = [];
+for (const msg of listData.messages) {
+  const detailResp = await fetch(
+    `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`,
+    { headers: { Authorization: `Bearer ${account.access_token}` } }
+  );
+  const detail = await detailResp.json();
+  const headers = detail.payload?.headers || [];
+  const getHeader = (n) => headers.find(h => h.name.toLowerCase() === n.toLowerCase())?.value || '';
+  
+  // ✅ 修复后的发件人提取
+  const fromHeader = getHeader('From');
+  let fromName = fromHeader;
+  
+  // 提取邮箱地址（支持 + 号等特殊字符）
+  const emailMatch = fromHeader.match(/[\w.+-]+@[\w.-]+\.[a-z]+/i);
+  
+  if (emailMatch) {
+    const email = emailMatch[0];
     
-    let from = getHeader('From');
-    const emailMatch = from.match(/[\w.-]+@[\w.-]+\.[a-z]+/i);
-    if (emailMatch) {
-      from = from.replace(emailMatch[0], '').replace(/[<>"]/g, '').trim() || emailMatch[0];
+    // 尝试提取显示名称（在 < 之前的部分）
+    const nameMatch = fromHeader.match(/^["']?([^"'<]+)["']?\s*</);
+    
+    if (nameMatch) {
+      // 有显示名称，使用它
+      fromName = nameMatch[1].trim();
+    } else {
+      // 没有显示名称，使用邮箱地址
+      fromName = email;
     }
-    
-    mails.push({
-      id: msg.id,
-      from: from.substring(0, 20),
-      subject: (getHeader('Subject') || '(无主题)').substring(0, 30),
-      date: formatDate(getHeader('Date')),
-      unread: detail.labelIds?.includes('UNREAD'),
-      starred: detail.labelIds?.includes('STARRED')
-    });
   }
+  
+  mails.push({
+    id: msg.id,
+    from: fromName.substring(0, 20),
+    subject: (getHeader('Subject') || '(无主题)').substring(0, 30),
+    date: formatDate(getHeader('Date')),
+    unread: detail.labelIds?.includes('UNREAD'),
+    starred: detail.labelIds?.includes('STARRED')
+  });
+}
 
   await storeMailIds(userId, mails, env);
 
-  let text = `📬 ${query.substring(0, 30)}\n━━━━━━━━━━━━━━━━━━━━\n\n`;
+  let text = `${formatQueryForDisplay(query)}\n━━━━━━━━━━━━━━━━━━━━\n\n`;
   mails.forEach((m, i) => {
     const icon = m.unread ? '🔵' : '⚪️';
     const star = m.starred ? '⭐' : '';
@@ -758,6 +881,7 @@ async function sendMailList(chatId, userId, query, pageToken, editMsgId, env) {
   const params = {
     chat_id: chatId,
     text,
+    parse_mode: 'HTML',  // ✅ 添加这一行，支持HTML链接
     reply_markup: { inline_keyboard: buttons }
   };
   if (editMsgId) params.message_id = editMsgId;
@@ -808,20 +932,35 @@ async function sendMailDetail(chatId, userId, mailId, editMsgId, showFull, env) 
   const headers = mail.payload?.headers || [];
   const getHeader = (n) => headers.find(h => h.name.toLowerCase() === n.toLowerCase())?.value || '';
 
-  const from = getHeader('From');
+  // ✅ 修复后的发件人提取逻辑
+  const fromHeader = getHeader('From');
   const subject = getHeader('Subject') || '(无主题)';
   const date = formatDate(getHeader('Date'));
   const unread = mail.labelIds?.includes('UNREAD');
   const starred = mail.labelIds?.includes('STARRED');
 
-  let fromName = from;
-  let fromEmail = from;
-  const emailMatch = from.match(/[\w.-]+@[\w.-]+\.[a-z]+/i);
+  let fromName = fromHeader;
+  let fromEmail = fromHeader;
+  
+  // 提取邮箱地址（支持 + 号等特殊字符）
+  const emailMatch = fromHeader.match(/[\w.+-]+@[\w.-]+\.[a-z]+/i);
+  
   if (emailMatch) {
     fromEmail = emailMatch[0];
-    fromName = from.replace(/[<>]/g, '').replace(emailMatch[0], '').replace(/"/g, '').trim() || fromEmail;
+    
+    // 尝试提取显示名称（在 < 之前的部分）
+    const nameMatch = fromHeader.match(/^["']?([^"'<]+)["']?\s*</);
+    
+    if (nameMatch) {
+      // 有显示名称，使用它
+      fromName = nameMatch[1].trim();
+    } else {
+      // 没有显示名称，使用邮箱地址
+      fromName = fromEmail;
+    }
   }
 
+  // 后面的代码保持不变...
   const maxLen = showFull ? MAX_CONTENT_LENGTH : PREVIEW_LENGTH;
   const content = extractContent(mail.payload, maxLen, showFull);
   const attachments = getAttachments(mail.payload);
@@ -835,9 +974,9 @@ async function sendMailDetail(chatId, userId, mailId, editMsgId, showFull, env) 
   text += `🕐 ${escapeHtml(date)}\n`;
   if (attachments.length) text += `📎 附件: ${attachments.length} 个\n`;
   text += '━━━━━━━━━━━━━━━━━━━━\n\n';
-  text += content; // content 已经是 HTML 格式
+  text += content;
 
-  await env.USER_TOKENS.put(`current:${userId}`, mailId, { expirationTtl: 3600 });
+  await env.USER_TOKENS.put(`current:${userId}`, mailId, { expirationTtl: 3600 });;
 
   const buttons = [];
   
@@ -855,8 +994,8 @@ async function sendMailDetail(chatId, userId, mailId, editMsgId, showFull, env) 
   const viewLink = await generateViewLink(userId, mailId, account.email, env);
   buttons.push([{ text: '🌐 在浏览器中查看', url: viewLink }]);
 
-  const searchEmail = fromEmail.substring(0, 25);
-  buttons.push([{ text: `🔍 搜索 ${fromName.substring(0, 10)} 的邮件`, callback_data: `sf:${searchEmail}` }]);
+  buttons.push([{ text: `🔍 搜索 ${fromName.substring(0, 10)} 的邮件`, callback_data: `sf:${fromEmail}` }]);
+  
 
   if (attachments.length > 0) {
     const attRow = [];
@@ -1512,11 +1651,20 @@ async function handleCallback(query, env) {
     return;
   }
 
-  if (data.startsWith('ref:')) {
-    const query = data.substring(4);
-    await sendMailList(chatId, userId, query, null, msgId, env);
-    return;
+if (data.startsWith('ref:')) {
+  let query = data.substring(4);
+  
+  // 尝试从lastquery恢复完整query（处理截断问题）
+  const lastQuery = await env.USER_TOKENS.get(`lastquery:${userId}`);
+  
+  if (lastQuery && lastQuery.startsWith(query) && lastQuery.length > query.length) {
+    // callback_data中的query被截断了，使用完整的lastQuery
+    query = lastQuery;
   }
+  
+  await sendMailList(chatId, userId, query, null, msgId, env);
+  return;
+}
 
   if (data.startsWith('pg:')) {
     const ts = data.substring(3);
@@ -1820,7 +1968,7 @@ async function renewAllWatches(env) {
   }
 }
 
-// ==================== 解决方案 ====================
+// ==================== 符合Google OAuth验证所有要求的完整首页 ====================
 
 function getHomePage() {
   return `<!DOCTYPE html>
@@ -1829,19 +1977,15 @@ function getHomePage() {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <!-- 🔴 关键1：title标签中ONLY使用应用名称 -->
-  <title>星霜的邮件助手</title>
+  <title>邮件助手</title>
   
-  <!-- 🔴 关键2：Meta标签明确应用名称 -->
-  <meta name="application-name" content="星霜的邮件助手">
+  <meta name="application-name" content="邮件助手">
   <meta name="description" content="通过 Telegram 安全便捷地访问和管理您的邮箱">
   
-  <!-- 隐私政策链接标记 -->
   <link rel="privacy-policy" href="/privacy">
   <meta name="privacy-policy" content="https://emailbot.loushi.de5.net/privacy">
   
   <style>
-    /* 样式代码保持不变 */
     * {
       margin: 0;
       padding: 0;
@@ -1874,7 +2018,6 @@ function getHomePage() {
       align-items: center;
     }
     
-    /* 🔴 关键3：nav-brand 也必须只使用应用名称 */
     .nav-brand {
       font-size: 20px;
       font-weight: 700;
@@ -1923,19 +2066,18 @@ function getHomePage() {
       margin-bottom: 20px;
     }
     
-    /* 🔴 关键4：H1 标签样式 */
     .title {
       font-size: 48px;
       font-weight: 700;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
       text-shadow: 0 2px 10px rgba(0,0,0,0.2);
     }
     
-    /* 分离的描述文字样式 */
-    .description {
-      font-size: 20px;
-      opacity: 0.9;
+    .tagline {
+      font-size: 22px;
+      opacity: 0.95;
       margin-bottom: 30px;
+      font-weight: 500;
     }
     
     .status-badge {
@@ -1956,6 +2098,115 @@ function getHomePage() {
       background: #10b981;
       border-radius: 50%;
       animation: pulse 2s infinite;
+    }
+    
+    /* 新增：应用用途说明区域 */
+    .purpose-section {
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 40px;
+      margin-bottom: 50px;
+      border: 1px solid rgba(255,255,255,0.2);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .purpose-section h2 {
+      font-size: 32px;
+      margin-bottom: 25px;
+      text-align: center;
+    }
+    
+    .purpose-content {
+      font-size: 17px;
+      line-height: 1.8;
+      margin-bottom: 20px;
+    }
+    
+    .purpose-content p {
+      margin-bottom: 15px;
+    }
+    
+    .purpose-list {
+      margin: 20px 0;
+      padding-left: 0;
+      list-style: none;
+    }
+    
+    .purpose-list li {
+      padding: 12px 0;
+      padding-left: 35px;
+      position: relative;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    
+    .purpose-list li:before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      font-size: 20px;
+      font-weight: bold;
+      color: #10b981;
+    }
+    
+    /* 数据使用说明区域 */
+    .data-usage-section {
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 40px;
+      margin-bottom: 50px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-left: 5px solid #fbbf24;
+    }
+    
+    .data-usage-section h2 {
+      font-size: 28px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .data-usage-content {
+      font-size: 16px;
+      line-height: 1.8;
+    }
+    
+    .data-usage-content p {
+      margin-bottom: 15px;
+    }
+    
+    .data-box {
+      background: rgba(255,255,255,0.1);
+      padding: 20px;
+      border-radius: 12px;
+      margin: 20px 0;
+    }
+    
+    .data-box h3 {
+      font-size: 20px;
+      margin-bottom: 15px;
+      color: #fbbf24;
+    }
+    
+    .data-box ul {
+      list-style: none;
+      padding-left: 0;
+    }
+    
+    .data-box ul li {
+      padding: 8px 0;
+      padding-left: 25px;
+      position: relative;
+    }
+    
+    .data-box ul li:before {
+      content: "→";
+      position: absolute;
+      left: 0;
+      color: #fbbf24;
     }
     
     .content {
@@ -2058,7 +2309,6 @@ function getHomePage() {
       margin-bottom: 15px;
     }
     
-    /* 🔴 关键5：确保应用名称在文本中独立显示 */
     .app-name {
       font-weight: 700;
     }
@@ -2175,8 +2425,13 @@ function getHomePage() {
         font-size: 36px;
       }
       
-      .description {
-        font-size: 16px;
+      .tagline {
+        font-size: 18px;
+      }
+      
+      .purpose-section,
+      .data-usage-section {
+        padding: 25px;
       }
       
       .content {
@@ -2203,11 +2458,9 @@ function getHomePage() {
   </style>
 </head>
 <body>
-  <!-- 顶部导航栏 -->
   <nav class="top-nav">
     <div class="top-nav-container">
-      <!-- 🔴 关键6：导航品牌名只使用应用名称 -->
-      <a href="/" class="nav-brand">星霜的邮件助手</a>
+      <a href="/" class="nav-brand">邮件助手</a>
       <div class="nav-links">
         <a href="/privacy" class="nav-link nav-link-privacy" rel="privacy-policy">隐私政策</a>
         <a href="/terms" class="nav-link">服务条款</a>
@@ -2218,18 +2471,74 @@ function getHomePage() {
   <div class="container">
     <header class="header">
       <div class="logo">📧🤖</div>
-      
-      <!-- 🔴 🔴 🔴 最关键：H1标签ONLY包含应用名称，不包含任何描述 -->
-      <h1 class="title">星霜的邮件助手</h1>
-      
-      <!-- 🔴 关键7：描述文字独立出来，不放在H1中 -->
-      <p class="description">通过 Telegram 安全便捷地访问和管理您的邮箱</p>
-      
-      <div class="status-badge">
-        <span class="status-dot"></span>
-        服务正常运行
-      </div>
+      <h1 class="title">邮件助手</h1>
+      <p class="tagline">通过 Telegram 安全便捷地访问和管理您的邮箱</p>
     </header>
+
+    <!-- 🔴 新增：应用用途说明 - Google要求的关键内容 -->
+    <section class="purpose-section">
+      <h2>📱 应用用途</h2>
+      <div class="purpose-content">
+        <p>
+          <span class="app-name">邮件助手</span>是一个通过 Telegram 机器人访问和管理您的邮箱的应用程序。
+          本应用旨在让您无需打开邮箱客户端，即可通过 Telegram 随时随地查看和处理邮件。
+        </p>
+        
+        <p><strong>本应用的主要功能包括：</strong></p>
+        <ul class="purpose-list">
+          <li>查看邮箱收件箱、未读邮件和星标邮件</li>
+          <li>搜索邮件内容，快速定位所需信息</li>
+          <li>标记邮件为已读、未读或星标</li>
+          <li>删除不需要的邮件</li>
+          <li>下载邮件附件到 Telegram</li>
+          <li>接收新邮件的实时推送通知</li>
+          <li>在网页浏览器中预览邮件完整内容</li>
+          <li>支持同时管理多个邮箱账户</li>
+        </ul>
+        
+        <p>
+          本应用完全运行在 Telegram 平台上，您无需安装任何额外软件。
+          所有邮件数据都通过加密连接传输，确保您的隐私安全。
+        </p>
+      </div>
+    </section>
+
+    <!-- 🔴 新增：数据使用说明 - Google要求必须透明说明 -->
+    <section class="data-usage-section">
+      <h2>🔐 我们为何需要访问您的邮箱数据</h2>
+      <div class="data-usage-content">
+        <p>
+          为了提供上述功能，<span class="app-name">邮件助手</span>需要请求访问您的 Gmail 账户。
+          我们承诺<strong>仅将您的数据用于以下目的</strong>：
+        </p>
+        
+        <div class="data-box">
+          <h3>📬 我们请求的权限：</h3>
+          <ul>
+            <li><strong>读取邮件内容</strong>：用于在 Telegram 中显示邮件列表和详细内容</li>
+            <li><strong>修改邮件标签</strong>：用于标记邮件为已读、未读或星标</li>
+            <li><strong>删除邮件</strong>：用于将邮件移至垃圾箱</li>
+            <li><strong>读取邮箱配置</strong>：用于获取您的邮箱地址和账户信息</li>
+          </ul>
+        </div>
+        
+        <div class="data-box">
+          <h3>🛡️ 我们如何保护您的数据：</h3>
+          <ul>
+            <li><strong>不存储邮件内容</strong>：所有邮件数据仅在处理时临时加载，处理完成后立即删除</li>
+            <li><strong>不分享给第三方</strong>：您的邮件数据绝不会被出售、出租或分享给任何第三方</li>
+            <li><strong>加密传输</strong>：所有数据通过 HTTPS 加密连接传输</li>
+            <li><strong>最小权限原则</strong>：我们仅请求实现功能所必需的最小权限</li>
+            <li><strong>您完全掌控</strong>：您可以随时在 Google 账户设置中撤销应用的访问权限</li>
+          </ul>
+        </div>
+        
+        <p>
+          我们重视您的隐私和数据安全。如需了解更多详情，请查看我们的
+          <a href="/privacy" style="color: #fbbf24; text-decoration: underline; font-weight: 600;">隐私政策</a>。
+        </p>
+      </div>
+    </section>
 
     <div class="content">
       <div class="card">
@@ -2289,17 +2598,12 @@ function getHomePage() {
       </div>
     </section>
 
-    <!-- 突出的隐私政策部分 -->
     <div class="privacy-notice">
-      <strong>🔒 隐私保护与数据安全</strong>
+      <strong>🔒 隐私保护承诺</strong>
       <p>
-        <!-- 🔴 关键8：正文中使用 <span class="app-name"> 突出应用名称 -->
-        <span class="app-name">星霜的邮件助手</span>重视您的隐私。我们不会存储、分享或出售您的任何邮件数据。
+        <span class="app-name">邮件助手</span>重视您的隐私。我们不会存储、分享或出售您的任何邮件数据。
         所有数据处理都在加密环境中实时进行，处理完成后立即删除。
         您可以随时撤销授权，删除所有数据。
-      </p>
-      <p style="margin-top: 15px;">
-        了解我们如何保护您的数据，请查看我们的隐私政策和服务条款：
       </p>
       <div class="privacy-links">
         <a href="/privacy" class="privacy-link" rel="privacy-policy">
@@ -2312,7 +2616,7 @@ function getHomePage() {
     </div>
 
     <section class="cta-section">
-      <a href="tg://resolve" class="cta-button">
+      <a href="https://t.me" class="cta-button">
         📱 立即在 Telegram 中使用
       </a>
     </section>
@@ -2322,13 +2626,12 @@ function getHomePage() {
         <a href="/" class="footer-link">首页</a>
         <a href="/privacy" class="footer-link" rel="privacy-policy">隐私政策</a>
         <a href="/terms" class="footer-link">服务条款</a>
-        <a href="tg://resolve" class="footer-link">Telegram</a>
+        <a href="https://t.me" class="footer-link">Telegram</a>
         <a href="mailto:xiaobainuli@gmail.com" class="footer-link">联系我们</a>
       </nav>
       
       <div class="copyright">
-        <!-- 🔴 关键9：版权声明中的应用名称也要独立、清晰 -->
-        <p><span class="app-name">星霜的邮件助手</span> © 2026 - 保留所有权利</p>
+        <p><span class="app-name">邮件助手</span> © 2026 - 保留所有权利</p>
         <p style="margin-top: 10px;">
           本服务使用 Google API 服务，遵守 
           <a href="https://developers.google.com/terms/api-services-user-data-policy" 
@@ -2790,3 +3093,4 @@ function getTermsPage() {
 </body>
 </html>`;
 }
+
