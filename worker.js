@@ -706,8 +706,12 @@ async function handleMessage(message, env) {
   const chatId = message.chat.id;
   const userId = String(message.from.id);
   const text = message.text.trim();
-
-  const todayTs = getTodayTimestamp();
+  
+  const today = toBeijingTime(new Date());
+  const year = today.getUTCFullYear();
+  const month = String(today.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(today.getUTCDate()).padStart(2, '0');
+  const todayTs = `${year}/${month}/${day}`;
 
   const handlers = {
     '/start': () => sendWelcome(chatId, userId, env),
@@ -1322,6 +1326,34 @@ function getAttachments(payload) {
 }
 
 // ==================== 统计 ====================
+// 获取精确的邮件数量（通过分页计数）
+async function getAccurateCount(token, query, maxCount = 500) {
+  let total = 0;
+  let pageToken = null;
+  const maxResults = 100; // 每页100条
+  
+  while (total < maxCount) {
+    const url = new URL('https://gmail.googleapis.com/gmail/v1/users/me/messages');
+    url.searchParams.set('q', query);
+    url.searchParams.set('maxResults', maxResults);
+    if (pageToken) url.searchParams.set('pageToken', pageToken);
+    
+    const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const data = await resp.json();
+    
+    if (!data.messages || data.messages.length === 0) break;
+    
+    total += data.messages.length;
+    
+    // 如果没有下一页，或者已经超过maxCount，停止
+    if (!data.nextPageToken || total >= maxCount) break;
+    
+    pageToken = data.nextPageToken;
+  }
+  
+  return total >= maxCount ? `${maxCount}+` : total;
+}
+
 async function sendStats(chatId, userId, editMsgId, env) {
   const account = await getActiveAccount(userId, env);
   
@@ -1335,31 +1367,38 @@ async function sendStats(chatId, userId, editMsgId, env) {
   }
 
   const token = account.access_token;
-  const todayTs = getTodayTimestamp();
+  
+  // 获取今日日期（北京时间）
+  const today = toBeijingTime(new Date());
+  const year = today.getUTCFullYear();
+  const month = String(today.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(today.getUTCDate()).padStart(2, '0');
+  const todayStr = `${year}/${month}/${day}`;
 
-  const [profileResp, unreadResp, todayResp, starredResp] = await Promise.all([
-    fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', { headers: { Authorization: `Bearer ${token}` } }),
-    fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?q=is:unread&maxResults=1', { headers: { Authorization: `Bearer ${token}` } }),
-    fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages?q=after:${todayTs}&maxResults=1`, { headers: { Authorization: `Bearer ${token}` } }),
-    fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?q=is:starred&maxResults=1', { headers: { Authorization: `Bearer ${token}` } })
-  ]);
-
+  // 先获取 profile（总数是准确的）
+  const profileResp = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', { 
+    headers: { Authorization: `Bearer ${token}` } 
+  });
   const profile = await profileResp.json();
-  const unread = await unreadResp.json();
-  const today = await todayResp.json();
-  const starred = await starredResp.json();
+  
+  // ✅ 使用精确计数而不是估计值
+  const [unreadCount, todayCount, starredCount] = await Promise.all([
+    getAccurateCount(token, 'is:unread', 500),
+    getAccurateCount(token, `after:${todayStr}`, 500),
+    getAccurateCount(token, 'is:starred', 500)
+  ]);
 
   let text = '📊 *邮箱统计*\n━━━━━━━━━━━━━━━━━━━━\n\n';
   text += `📧 ${profile.emailAddress}\n\n`;
-  text += `📬 未读: *${unread.resultSizeEstimate || 0}*\n`;
-  text += `📅 今日: *${today.resultSizeEstimate || 0}*\n`;
-  text += `⭐ 星标: *${starred.resultSizeEstimate || 0}*\n`;
+  text += `📬 未读: *${unreadCount}*\n`;
+  text += `📅 今日: *${todayCount}*\n`;
+  text += `⭐ 星标: *${starredCount}*\n`;
   text += `📁 总数: *${profile.messagesTotal || 0}*\n`;
 
   const buttons = [
     [
       { text: '📬 查看未读', callback_data: 'list:is:unread' },
-      { text: '📅 查看今日', callback_data: `list:after:${todayTs}` }
+      { text: '📅 查看今日', callback_data: `list:after:${todayStr}` }
     ],
     [{ text: '🔄 刷新', callback_data: 'stats:refresh' }]
   ];
@@ -1977,9 +2016,9 @@ function getHomePage() {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>邮件助手</title>
+  <title>TG Mail Bridge</title>
   
-  <meta name="application-name" content="邮件助手">
+  <meta name="application-name" content="TG Mail Bridge">
   <meta name="description" content="通过 Telegram 安全便捷地访问和管理您的邮箱">
   
   <link rel="privacy-policy" href="/privacy">
@@ -2460,7 +2499,7 @@ function getHomePage() {
 <body>
   <nav class="top-nav">
     <div class="top-nav-container">
-      <a href="/" class="nav-brand">邮件助手</a>
+      <a href="/" class="nav-brand">TG Mail Bridge</a>
       <div class="nav-links">
         <a href="/privacy" class="nav-link nav-link-privacy" rel="privacy-policy">隐私政策</a>
         <a href="/terms" class="nav-link">服务条款</a>
@@ -2471,7 +2510,7 @@ function getHomePage() {
   <div class="container">
     <header class="header">
       <div class="logo">📧🤖</div>
-      <h1 class="title">邮件助手</h1>
+      <h1 class="title">TG Mail Bridge</h1>
       <p class="tagline">通过 Telegram 安全便捷地访问和管理您的邮箱</p>
     </header>
 
@@ -2480,7 +2519,7 @@ function getHomePage() {
       <h2>📱 应用用途</h2>
       <div class="purpose-content">
         <p>
-          <span class="app-name">邮件助手</span>是一个通过 Telegram 机器人访问和管理您的邮箱的应用程序。
+          <span class="app-name">TG Mail Bridge</span>是一个通过 Telegram 机器人访问和管理您的邮箱的应用程序。
           本应用旨在让您无需打开邮箱客户端，即可通过 Telegram 随时随地查看和处理邮件。
         </p>
         
@@ -2508,7 +2547,7 @@ function getHomePage() {
       <h2>🔐 我们为何需要访问您的邮箱数据</h2>
       <div class="data-usage-content">
         <p>
-          为了提供上述功能，<span class="app-name">邮件助手</span>需要请求访问您的 Gmail 账户。
+          为了提供上述功能，<span class="app-name">TG Mail Bridge</span>需要请求访问您的 Gmail 账户。
           我们承诺<strong>仅将您的数据用于以下目的</strong>：
         </p>
         
@@ -2601,7 +2640,7 @@ function getHomePage() {
     <div class="privacy-notice">
       <strong>🔒 隐私保护承诺</strong>
       <p>
-        <span class="app-name">邮件助手</span>重视您的隐私。我们不会存储、分享或出售您的任何邮件数据。
+        <span class="app-name">TG Mail Bridge</span>重视您的隐私。我们不会存储、分享或出售您的任何邮件数据。
         所有数据处理都在加密环境中实时进行，处理完成后立即删除。
         您可以随时撤销授权，删除所有数据。
       </p>
@@ -2631,7 +2670,7 @@ function getHomePage() {
       </nav>
       
       <div class="copyright">
-        <p><span class="app-name">邮件助手</span> © 2026 - 保留所有权利</p>
+        <p><span class="app-name">TG Mail Bridge</span> © 2026 - 保留所有权利</p>
         <p style="margin-top: 10px;">
           本服务使用 Google API 服务，遵守 
           <a href="https://developers.google.com/terms/api-services-user-data-policy" 
@@ -2694,7 +2733,7 @@ function getPrivacyPage() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>隐私政策 - Gmail Telegram Bot</title>
+  <title>隐私政策 - TG Mail Bridge</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -2787,7 +2826,7 @@ function getPrivacyPage() {
   <div class="container">
     <div class="header">
       <h1>📧 隐私政策</h1>
-      <p>Gmail Telegram Bot - 我们重视您的隐私</p>
+      <p>TG Mail Bridge - 我们重视您的隐私</p>
     </div>
     
     <div class="content">
@@ -2796,7 +2835,7 @@ function getPrivacyPage() {
       </div>
 
       <h2>1. 数据收集与使用</h2>
-      <p>Gmail Telegram Bot 使用 Google OAuth 2.0 授权访问您的 Gmail 邮箱。我们收集和使用的数据包括：</p>
+      <p>TG Mail Bridge 使用 Google OAuth 2.0 授权访问您的 Gmail 邮箱。我们收集和使用的数据包括：</p>
       <ul>
         <li><strong>Gmail 邮件数据</strong>：用于在 Telegram 中展示邮件列表、内容和附件</li>
         <li><strong>Gmail 账户信息</strong>：邮箱地址，用于识别和管理多个账户</li>
@@ -2828,7 +2867,7 @@ function getPrivacyPage() {
       </ul>
 
       <h2>5. Google API 服务使用</h2>
-      <p>Gmail Telegram Bot 使用 Google API 服务，并遵守 <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" style="color: #667eea;">Google API 服务用户数据政策</a>，包括有限使用要求。</p>
+      <p>TG Mail Bridge 使用 Google API 服务，并遵守 <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" style="color: #667eea;">Google API 服务用户数据政策</a>，包括有限使用要求。</p>
 
       <h2>6. 您的权利</h2>
       <p>您拥有以下权利：</p>
@@ -2877,7 +2916,7 @@ function getTermsPage() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>服务条款 - Gmail Telegram Bot</title>
+  <title>服务条款 - TG Mail Bridge</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -2970,7 +3009,7 @@ function getTermsPage() {
   <div class="container">
     <div class="header">
       <h1>📜 服务条款</h1>
-      <p>Gmail Telegram Bot - 使用条款与协议</p>
+      <p>TG Mail Bridge - 使用条款与协议</p>
     </div>
     
     <div class="content">
@@ -2979,7 +3018,7 @@ function getTermsPage() {
       </div>
 
       <h2>1. 服务说明</h2>
-      <p>Gmail Telegram Bot（以下简称"本服务"）是一个通过 Telegram 访问和管理 Gmail 邮箱的工具。本服务允许您：</p>
+      <p>TG Mail Bridge（以下简称"本服务"）是一个通过 Telegram 访问和管理 Gmail 邮箱的工具。本服务允许您：</p>
       <ul>
         <li>通过 Telegram 查看 Gmail 邮件</li>
         <li>搜索、标记、删除邮件</li>
@@ -3093,4 +3132,3 @@ function getTermsPage() {
 </body>
 </html>`;
 }
-
