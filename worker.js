@@ -170,6 +170,16 @@ function getTodayTimestamp() {
   const beijingMidnight = beijingMs - (beijingMs % dayMs);
   return Math.floor((beijingMidnight - offset) / 1000);
 }
+
+// ✅ 新增：获取今日日期字符串（YYYY/MM/DD格式，用于Gmail查询）
+function getTodayDateString() {
+  const today = toBeijingTime(new Date());
+  const year = today.getUTCFullYear();
+  const month = String(today.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(today.getUTCDate()).padStart(2, '0');
+  return `${year}/${month}/${day}`;
+}
+
 // ==================== 完整的格式化函数（推荐版本） ====================
 function formatQueryForDisplay(query) {
   const fromMatch = query.match(/^from:(.+)$/);
@@ -706,18 +716,15 @@ async function handleMessage(message, env) {
   const chatId = message.chat.id;
   const userId = String(message.from.id);
   const text = message.text.trim();
-  
-  const today = toBeijingTime(new Date());
-  const year = today.getUTCFullYear();
-  const month = String(today.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(today.getUTCDate()).padStart(2, '0');
-  const todayTs = `${year}/${month}/${day}`;
+
+  // ✅ 使用新函数
+  const todayStr = getTodayDateString();
 
   const handlers = {
     '/start': () => sendWelcome(chatId, userId, env),
     '🏠 主菜单': () => sendWelcome(chatId, userId, env),
     '📬 收件箱': () => sendMailList(chatId, userId, 'in:inbox', null, null, env),
-    '📅 今日': () => sendMailList(chatId, userId, `after:${todayTs}`, null, null, env),
+    '📅 今日': () => sendMailList(chatId, userId, `after:${todayStr}`, null, null, env),
     '⭐ 星标': () => sendMailList(chatId, userId, 'is:starred', null, null, env),
     '🔍 搜索': () => sendSearchHelp(chatId, env),
     '📊 统计': () => sendStats(chatId, userId, null, env),
@@ -874,9 +881,11 @@ for (const msg of listData.messages) {
   navRow.push({ text: '🔄 刷新', callback_data: `ref:${query.substring(0, 50)}` });
   
   if (listData.nextPageToken) {
-    const pageKey = `page:${userId}:${Date.now()}`;
+    // ✅ 修复：使用同一个时间戳
+    const timestamp = Date.now();
+    const pageKey = `page:${userId}:${timestamp}`;
     await env.USER_TOKENS.put(pageKey, JSON.stringify({ query, token: listData.nextPageToken }), { expirationTtl: 3600 });
-    navRow.push({ text: '➡️ 下一页', callback_data: `pg:${Date.now()}` });
+    navRow.push({ text: '➡️ 下一页', callback_data: `pg:${timestamp}` });
   }
   buttons.push(navRow);
   buttons.push([{ text: '✅ 全部已读', callback_data: 'readall' }]);
@@ -1368,12 +1377,8 @@ async function sendStats(chatId, userId, editMsgId, env) {
 
   const token = account.access_token;
   
-  // 获取今日日期（北京时间）
-  const today = toBeijingTime(new Date());
-  const year = today.getUTCFullYear();
-  const month = String(today.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(today.getUTCDate()).padStart(2, '0');
-  const todayStr = `${year}/${month}/${day}`;
+  // ✅ 使用新函数
+  const todayStr = getTodayDateString();
 
   // 先获取 profile（总数是准确的）
   const profileResp = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', { 
@@ -1725,11 +1730,90 @@ if (data.startsWith('ref:')) {
     return;
   }
 
+  // ✅ 新增：处理新邮件通知按钮 (nm:mailId:action)
+  if (data.startsWith('nm:')) {
+    const parts = data.substring(3).split(':');
+    const mailId = parts[0];
+    const action = parts[1];
+    
+    // ✅ 检查是否过期（24小时）
+    const mailKey = `newmail:${userId}:${mailId}`;
+    const exists = await env.USER_TOKENS.get(mailKey);
+    
+    if (!exists) {
+      // 已过期
+      await sendTelegram(env.BOT_TOKEN, 'answerCallbackQuery', {
+        callback_query_id: query.id,
+        text: '⚠️ 邮件通知已过期（超过24小时），请从邮件列表查看',
+        show_alert: true
+      });
+      return;
+    }
+    
+    const account = await getActiveAccount(userId, env);
+    if (!account) {
+      await sendTelegram(env.BOT_TOKEN, 'answerCallbackQuery', {
+        callback_query_id: query.id,
+        text: '⚠️ 账户未绑定或已过期',
+        show_alert: true
+      });
+      return;
+    }
+
+    if (action === 'full') {
+      await sendMailDetail(chatId, userId, mailId, msgId, true, env);
+      return;
+    }
+
+    if (action === 'read') {
+      await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${mailId}/modify`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${account.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ removeLabelIds: ['UNREAD'] })
+      });
+      await sendTelegram(env.BOT_TOKEN, 'editMessageText', {
+        chat_id: chatId,
+        message_id: msgId,
+        text: '✅ 已标记为已读',
+        reply_markup: {
+          inline_keyboard: [[
+            { text: '📖 在 Telegram 查看', callback_data: `nm:${mailId}:full` }
+          ]]
+        }
+      });
+      return;
+    }
+
+    if (action === 'delete') {
+      await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${mailId}/trash`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${account.access_token}` }
+      });
+      await sendTelegram(env.BOT_TOKEN, 'editMessageText', {
+        chat_id: chatId,
+        message_id: msgId,
+        text: '🗑️ 已移至垃圾箱'
+      });
+      return;
+    }
+  }
+
   if (data.startsWith('do:')) {
     const action = data.substring(3);
     const mailId = await env.USER_TOKENS.get(`current:${userId}`);
     
-    if (!mailId) return;
+    // ✅ 添加友好的错误提示
+    if (!mailId) {
+      await sendTelegram(env.BOT_TOKEN, 'answerCallbackQuery', {
+        callback_query_id: query.id,
+        text: '⚠️ 邮件链接已过期，请从邮件列表重新打开',
+        show_alert: true
+      });
+      return;
+    }
 
     const account = await getActiveAccount(userId, env);
     if (!account) return;
@@ -1785,7 +1869,15 @@ if (data.startsWith('ref:')) {
     const mailId = await env.USER_TOKENS.get(`current:${userId}`);
     const account = await getActiveAccount(userId, env);
     
-    if (!mailId || !account) return;
+    // ✅ 添加友好的错误提示
+    if (!mailId || !account) {
+      await sendTelegram(env.BOT_TOKEN, 'answerCallbackQuery', {
+        callback_query_id: query.id,
+        text: '⚠️ 邮件链接已过期，请从邮件列表重新打开',
+        show_alert: true
+      });
+      return;
+    }
 
     const mailResp = await fetch(
       `https://gmail.googleapis.com/gmail/v1/users/me/messages/${mailId}?format=full`,
@@ -1921,13 +2013,16 @@ async function handlePubSubPush(message, env) {
             const subject = headers.find(h => h.name === 'Subject')?.value || '(无主题)';
 
             let fromName = from;
-            const emailMatch = from.match(/[\w.-]+@[\w.-]+\.[a-z]+/i);
+            const emailMatch = from.match(/[\w.+-]+@[\w.-]+\.[a-z]+/i);
             if (emailMatch) {
               fromName = from.replace(emailMatch[0], '').replace(/[<>"]/g, '').trim() || emailMatch[0];
             }
 
             await env.USER_TOKENS.put(`active:${usrId}`, email);
-            await env.USER_TOKENS.put(`current:${usrId}`, m.message.id, { expirationTtl: 3600 });
+            
+            // ✅ 为每封新邮件创建独立的过期标记
+            const mailKey = `newmail:${usrId}:${m.message.id}`;
+            await env.USER_TOKENS.put(mailKey, m.message.id, { expirationTtl: 86400 });  // 24小时过期
 
             const viewLink = await generateViewLink(usrId, m.message.id, email, env);
 
@@ -1938,10 +2033,10 @@ async function handlePubSubPush(message, env) {
               reply_markup: {
                 inline_keyboard: [
                   [{ text: '🌐 在浏览器中查看', url: viewLink }],
-                  [{ text: '📖 在 Telegram 查看', callback_data: 'do:full' }],
+                  [{ text: '📖 在 Telegram 查看', callback_data: `nm:${m.message.id}:full` }],
                   [
-                    { text: '✅ 已读', callback_data: 'do:read' },
-                    { text: '🗑️ 删除', callback_data: 'do:delete' }
+                    { text: '✅ 已读', callback_data: `nm:${m.message.id}:read` },
+                    { text: '🗑️ 删除', callback_data: `nm:${m.message.id}:delete` }
                   ]
                 ]
               }
