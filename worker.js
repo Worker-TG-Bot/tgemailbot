@@ -10,8 +10,6 @@ const GMAIL_SCOPES = [
 ].join(' ');
 
 const PAGE_SIZE = 5;
-const MAX_CONTENT_LENGTH = 3500;
-const PREVIEW_LENGTH = 300;
 
 // ==================== 主入口 ====================
 export default {
@@ -687,6 +685,77 @@ function decodeBase64(base64) {
   return new TextDecoder('utf-8').decode(bytes);
 }
 
+// ==================== AI 邮件总结 ====================
+async function summarizeEmail(mailId, payload, env) {
+  // 先检查 KV 缓存（7天有效期）
+  const cacheKey = `aisum:${mailId}`;
+  const cached = await env.USER_TOKENS.get(cacheKey);
+  if (cached) return cached;
+
+  // 提取原始邮件内容（优先HTML，其次纯文本）
+  let rawContent = '';
+  const htmlData = findBody(payload, 'text/html');
+  const textData = findBody(payload, 'text/plain');
+
+  try {
+    if (htmlData) {
+      const base64 = htmlData.replace(/-/g, '+').replace(/_/g, '/');
+      rawContent = decodeBase64(base64);
+    } else if (textData) {
+      const base64 = textData.replace(/-/g, '+').replace(/_/g, '/');
+      rawContent = decodeBase64(base64);
+    }
+  } catch (e) {
+    rawContent = '';
+  }
+
+  if (!rawContent.trim()) return '(无邮件内容)';
+
+  // 限制传入AI的内容长度，避免超出token限制
+  const truncated = rawContent.substring(0, 10000);
+
+  const prompt = `你是一名邮件内容清理与摘要助手。
+
+任务：
+1. 清理邮件中的垃圾字符和HTML代码，包括：零宽字符、&nbsp;、追踪像素、隐藏元素、样式代码等。
+2. 提取邮件的核心信息，例如：验证码、会议时间、订单金额、重要通知、操作链接。
+3. 将内容压缩为 200字以内 的摘要。
+4. 输出为 Telegram HTML 格式，可使用：<b>加粗</b> 和 <a href="URL">链接</a>，禁止使用其他HTML标签。
+5. 如果检测到验证码（4-8位数字），优先突出显示：<b>验证码：123456</b>
+6. 如果原文不是中文，请翻译为中文。
+7. 删除营销内容、页脚、免责声明等无关信息。
+
+只输出最终摘要结果，不要解释，不要输出原文，不要输出任何其他内容。
+
+原始邮件内容：
+----------------------------------------
+${truncated}
+----------------------------------------`;
+
+  try {
+    const aiResp = await env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 600
+    });
+
+    let summary = (aiResp.response || '').trim();
+
+    // 清理AI可能输出的多余格式（防止AI输出markdown代码块等）
+    summary = summary.replace(/^```[\s\S]*?```$/gm, '').trim();
+    summary = summary.replace(/^`|`$/g, '').trim();
+
+    if (!summary) summary = '(AI总结失败，请在浏览器查看完整邮件)';
+
+    // 写入 KV 缓存，7天过期
+    await env.USER_TOKENS.put(cacheKey, summary, { expirationTtl: 604800 });
+
+    return summary;
+  } catch (e) {
+    console.error('AI summarize error:', e);
+    return '(AI总结出错，请在浏览器查看完整邮件)';
+  }
+}
+
 // ==================== 生成预览链接 ====================
 async function generateViewLink(userId, mailId, email, env) {
   const origin = await env.USER_TOKENS.get('origin');
@@ -912,8 +981,8 @@ function escapeHtml(text) {
     .replace(/"/g, '&quot;');
 }
 
-// ==================== 邮件详情 ====================
-async function sendMailDetail(chatId, userId, mailId, editMsgId, showFull, env) {
+// ==================== 邮件详情（AI总结版） ====================
+async function sendMailDetail(chatId, userId, mailId, editMsgId, _unused, env) {
   const account = await getActiveAccount(userId, env);
   
   if (!account) {
@@ -945,7 +1014,6 @@ async function sendMailDetail(chatId, userId, mailId, editMsgId, showFull, env) 
   const headers = mail.payload?.headers || [];
   const getHeader = (n) => headers.find(h => h.name.toLowerCase() === n.toLowerCase())?.value || '';
 
-  // ✅ 修复后的发件人提取逻辑
   const fromHeader = getHeader('From');
   const subject = getHeader('Subject') || '(无主题)';
   const date = formatDate(getHeader('Date'));
@@ -954,31 +1022,33 @@ async function sendMailDetail(chatId, userId, mailId, editMsgId, showFull, env) 
 
   let fromName = fromHeader;
   let fromEmail = fromHeader;
-  
-  // 提取邮箱地址（支持 + 号等特殊字符）
+
   const emailMatch = fromHeader.match(/[\w.+-]+@[\w.-]+\.[a-z]+/i);
-  
   if (emailMatch) {
     fromEmail = emailMatch[0];
-    
-    // 尝试提取显示名称（在 < 之前的部分）
     const nameMatch = fromHeader.match(/^["']?([^"'<]+)["']?\s*</);
-    
-    if (nameMatch) {
-      // 有显示名称，使用它
-      fromName = nameMatch[1].trim();
-    } else {
-      // 没有显示名称，使用邮箱地址
-      fromName = fromEmail;
-    }
+    fromName = nameMatch ? nameMatch[1].trim() : fromEmail;
   }
 
-  // 后面的代码保持不变...
-  const maxLen = showFull ? MAX_CONTENT_LENGTH : PREVIEW_LENGTH;
-  const content = extractContent(mail.payload, maxLen, showFull);
   const attachments = getAttachments(mail.payload);
 
-  // 使用 HTML 格式构建消息
+  // 先发送"总结中"占位消息（提升体验）
+  const loadingMethod = editMsgId ? 'editMessageText' : 'sendMessage';
+  const loadingParams = {
+    chat_id: chatId,
+    text: `${unread ? '🔵 未读' : '⚪️ 已读'}${starred ? ' ⭐' : ''}\n━━━━━━━━━━━━━━━━━━━━\n📋 <b>${escapeHtml(subject)}</b>\n\n👤 ${escapeHtml(fromName)}\n📧 ${escapeHtml(fromEmail)}\n🕐 ${escapeHtml(date)}\n━━━━━━━━━━━━━━━━━━━━\n\n⏳ AI 正在总结邮件内容...`,
+    parse_mode: 'HTML'
+  };
+  if (editMsgId) loadingParams.message_id = editMsgId;
+  const loadingResp = await sendTelegram(env.BOT_TOKEN, loadingMethod, loadingParams);
+
+  // 获取实际消息ID（用于后续编辑）
+  const actualMsgId = editMsgId || loadingResp?.result?.message_id;
+
+  // 调用 AI 总结（带 KV 缓存）
+  const aiSummary = await summarizeEmail(mailId, mail.payload, env);
+
+  // 构建最终消息
   let text = `${unread ? '🔵 未读' : '⚪️ 已读'}${starred ? ' ⭐' : ''}\n`;
   text += '━━━━━━━━━━━━━━━━━━━━\n';
   text += `📋 <b>${escapeHtml(subject)}</b>\n\n`;
@@ -987,28 +1057,23 @@ async function sendMailDetail(chatId, userId, mailId, editMsgId, showFull, env) 
   text += `🕐 ${escapeHtml(date)}\n`;
   if (attachments.length) text += `📎 附件: ${attachments.length} 个\n`;
   text += '━━━━━━━━━━━━━━━━━━━━\n\n';
-  text += content;
+  text += `🤖 <b>AI摘要</b>\n${aiSummary}`;
 
-  await env.USER_TOKENS.put(`current:${userId}`, mailId, { expirationTtl: 3600 });;
+  await env.USER_TOKENS.put(`current:${userId}`, mailId, { expirationTtl: 3600 });
 
   const buttons = [];
-  
+
   buttons.push([
     { text: unread ? '✅ 已读' : '📩 未读', callback_data: unread ? 'do:read' : 'do:unread' },
     { text: starred ? '⭐ 取消' : '⭐ 星标', callback_data: starred ? 'do:unstar' : 'do:star' },
     { text: '🗑️', callback_data: 'do:delete' }
   ]);
 
-  if (!showFull && content.includes('(点击查看完整)')) {
-    buttons.push([{ text: '📖 查看完整内容', callback_data: 'do:full' }]);
-  }
-  
-  // 网页预览按钮
+  // 网页预览按钮（完整原始邮件）
   const viewLink = await generateViewLink(userId, mailId, account.email, env);
-  buttons.push([{ text: '🌐 在浏览器中查看', url: viewLink }]);
+  buttons.push([{ text: '🌐 在浏览器中查看原文', url: viewLink }]);
 
   buttons.push([{ text: `🔍 搜索 ${fromName.substring(0, 10)} 的邮件`, callback_data: `sf:${fromEmail}` }]);
-  
 
   if (attachments.length > 0) {
     const attRow = [];
@@ -1020,20 +1085,17 @@ async function sendMailDetail(chatId, userId, mailId, editMsgId, showFull, env) 
 
   buttons.push([{ text: '⬅️ 返回列表', callback_data: 'back' }]);
 
-  const method = editMsgId ? 'editMessageText' : 'sendMessage';
-  const params = {
+  await sendTelegram(env.BOT_TOKEN, 'editMessageText', {
     chat_id: chatId,
+    message_id: actualMsgId,
     text,
-    parse_mode: 'HTML', // 使用 HTML 解析模式
+    parse_mode: 'HTML',
     reply_markup: { inline_keyboard: buttons }
-  };
-  if (editMsgId) params.message_id = editMsgId;
-  
-  await sendTelegram(env.BOT_TOKEN, method, params);
+  });
 }
 
-// ==================== 内容提取 ====================
-function extractContent(payload, maxLen, isFullMode) {
+// ==================== (旧extractContent已由AI总结替代) ====================
+function _extractContent_removed(payload, maxLen, isFullMode) {
   let bodyData = findBody(payload, 'text/html') || findBody(payload, 'text/plain');
   
   if (!bodyData) return '(无内容)';
@@ -1761,7 +1823,8 @@ if (data.startsWith('ref:')) {
     }
 
     if (action === 'full') {
-      await sendMailDetail(chatId, userId, mailId, msgId, true, env);
+      // 显示邮件详情（含AI摘要，推送通知"查看详情"按钮）
+      await sendMailDetail(chatId, userId, mailId, msgId, false, env);
       return;
     }
 
@@ -1817,11 +1880,6 @@ if (data.startsWith('ref:')) {
 
     const account = await getActiveAccount(userId, env);
     if (!account) return;
-
-    if (action === 'full') {
-      await sendMailDetail(chatId, userId, mailId, msgId, true, env);
-      return;
-    }
 
     const actions = {
       read: { removeLabelIds: ['UNREAD'] },
@@ -2003,8 +2061,9 @@ async function handlePubSubPush(message, env) {
       for (const h of historyData.history) {
         if (h.messagesAdded) {
           for (const m of h.messagesAdded) {
+            // 获取完整邮件内容（用于AI总结）
             const mailResp = await fetch(
-              `https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.message.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject`,
+              `https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.message.id}?format=full`,
               { headers: { Authorization: `Bearer ${token.access_token}` } }
             );
             const mail = await mailResp.json();
@@ -2020,20 +2079,25 @@ async function handlePubSubPush(message, env) {
 
             await env.USER_TOKENS.put(`active:${usrId}`, email);
             
-            // ✅ 为每封新邮件创建独立的过期标记
+            // 为每封新邮件创建独立的过期标记（24小时）
             const mailKey = `newmail:${usrId}:${m.message.id}`;
-            await env.USER_TOKENS.put(mailKey, m.message.id, { expirationTtl: 86400 });  // 24小时过期
+            await env.USER_TOKENS.put(mailKey, m.message.id, { expirationTtl: 86400 });
+
+            // 调用 AI 总结（结果会缓存到 KV，用户点击查看时无需重新总结）
+            const aiSummary = await summarizeEmail(m.message.id, mail.payload, env);
 
             const viewLink = await generateViewLink(usrId, m.message.id, email, env);
 
+            const notifyText = `🔔 <b>新邮件</b>\n━━━━━━━━━━━━━━━━\n\n📧 ${escapeHtml(email)}\n👤 ${escapeHtml(fromName)}\n📋 ${escapeHtml(subject)}\n━━━━━━━━━━━━━━━━\n\n🤖 <b>AI摘要</b>\n${aiSummary}`;
+
             await sendTelegram(env.BOT_TOKEN, 'sendMessage', {
               chat_id: usrId,
-              text: `🔔 <b>新邮件</b>\n━━━━━━━━━━━━━━━━\n\n📧 ${escapeHtml(email)}\n👤 ${escapeHtml(fromName)}\n📋 ${escapeHtml(subject)}`,
+              text: notifyText,
               parse_mode: 'HTML',
               reply_markup: {
                 inline_keyboard: [
-                  [{ text: '🌐 在浏览器中查看', url: viewLink }],
-                  [{ text: '📖 在 Telegram 查看', callback_data: `nm:${m.message.id}:full` }],
+                  [{ text: '🌐 在浏览器中查看原文', url: viewLink }],
+                  [{ text: '📖 在 Telegram 查看详情', callback_data: `nm:${m.message.id}:full` }],
                   [
                     { text: '✅ 已读', callback_data: `nm:${m.message.id}:read` },
                     { text: '🗑️ 删除', callback_data: `nm:${m.message.id}:delete` }
