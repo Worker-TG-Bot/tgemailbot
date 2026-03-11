@@ -685,6 +685,40 @@ function decodeBase64(base64) {
   return new TextDecoder('utf-8').decode(bytes);
 }
 
+// ==================== 轻量级 HTML 转纯文本 ====================
+function lightHtmlToText(html) {
+  let text = html;
+  // 移除 <head>...</head> 整块（包含 style/meta 等无用信息）
+  text = text.replace(/<head[\s\S]*?<\/head>/gi, '');
+  // 移除 <style> 和 <script> 块
+  text = text.replace(/<style[\s\S]*?<\/style>/gi, '');
+  text = text.replace(/<script[\s\S]*?<\/script>/gi, '');
+  // 保留链接的 href
+  text = text.replace(/<a\s[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (_, url, linkText) => {
+    const clean = linkText.replace(/<[^>]+>/g, '').trim();
+    return clean ? `${clean}(${url})` : url;
+  });
+  // 块级标签转换为换行
+  text = text.replace(/<\/?(p|div|br|tr|h[1-6]|li|blockquote)[^>]*>/gi, '\n');
+  // 移除所有剩余 HTML 标签
+  text = text.replace(/<[^>]+>/g, '');
+  // 解码常见 HTML 实体
+  text = text
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#\d+;/g, '')
+    .replace(/&#x[0-9a-fA-F]+;/g, '');
+  // 移除零宽字符
+  text = text.replace(/[\u200B-\u200D\uFEFF]/g, '');
+  // 合并多余空白和换行
+  text = text.replace(/[ \t]+/g, ' ');
+  text = text.replace(/\n{3,}/g, '\n\n');
+  return text.trim();
+}
+
 // ==================== AI 邮件总结 ====================
 async function summarizeEmail(mailId, payload, env) {
   // 先检查 KV 缓存（7天有效期）
@@ -692,18 +726,23 @@ async function summarizeEmail(mailId, payload, env) {
   const cached = await env.USER_TOKENS.get(cacheKey);
   if (cached) return cached;
 
-  // 提取原始邮件内容（优先HTML，其次纯文本）
+  // 优先纯文本，其次 HTML（HTML 需要先剥离标签）
   let rawContent = '';
-  const htmlData = findBody(payload, 'text/html');
   const textData = findBody(payload, 'text/plain');
+  const htmlData = findBody(payload, 'text/html');
 
   try {
-    if (htmlData) {
-      const base64 = htmlData.replace(/-/g, '+').replace(/_/g, '/');
-      rawContent = decodeBase64(base64);
-    } else if (textData) {
+    if (textData) {
       const base64 = textData.replace(/-/g, '+').replace(/_/g, '/');
-      rawContent = decodeBase64(base64);
+      rawContent = decodeBase64(base64).trim();
+    }
+    // 如果纯文本太短（可能只有几个字符），用 HTML 版本补充
+    if (rawContent.length < 50 && htmlData) {
+      const base64 = htmlData.replace(/-/g, '+').replace(/_/g, '/');
+      rawContent = lightHtmlToText(decodeBase64(base64));
+    } else if (!rawContent && htmlData) {
+      const base64 = htmlData.replace(/-/g, '+').replace(/_/g, '/');
+      rawContent = lightHtmlToText(decodeBase64(base64));
     }
   } catch (e) {
     rawContent = '';
@@ -711,8 +750,8 @@ async function summarizeEmail(mailId, payload, env) {
 
   if (!rawContent.trim()) return '(无邮件内容)';
 
-  // 限制传入AI的内容长度，避免超出token限制
-  const truncated = rawContent.substring(0, 10000);
+  // 剥离 HTML 后再截断，保证 AI 拿到的是真正的文本内容
+  const truncated = rawContent.substring(0, 4000);
 
   const prompt = `你是一名邮件内容清理与摘要助手。
 
@@ -733,10 +772,14 @@ ${truncated}
 ----------------------------------------`;
 
   try {
-    const aiResp = await env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 600
-    });
+    const aiResp = await Promise.race([
+      env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 600
+      }),
+      // 25秒超时保护，避免 Worker 卡死
+      new Promise((_, reject) => setTimeout(() => reject(new Error('AI timeout')), 25000))
+    ]);
 
     let summary = (aiResp.response || '').trim();
 
@@ -1032,49 +1075,21 @@ async function sendMailDetail(chatId, userId, mailId, editMsgId, _unused, env) {
 
   const attachments = getAttachments(mail.payload);
 
-  // 先发送"总结中"占位消息（提升体验）
-  const loadingMethod = editMsgId ? 'editMessageText' : 'sendMessage';
-  const loadingParams = {
-    chat_id: chatId,
-    text: `${unread ? '🔵 未读' : '⚪️ 已读'}${starred ? ' ⭐' : ''}\n━━━━━━━━━━━━━━━━━━━━\n📋 <b>${escapeHtml(subject)}</b>\n\n👤 ${escapeHtml(fromName)}\n📧 ${escapeHtml(fromEmail)}\n🕐 ${escapeHtml(date)}\n━━━━━━━━━━━━━━━━━━━━\n\n⏳ AI 正在总结邮件内容...`,
-    parse_mode: 'HTML'
-  };
-  if (editMsgId) loadingParams.message_id = editMsgId;
-  const loadingResp = await sendTelegram(env.BOT_TOKEN, loadingMethod, loadingParams);
-
-  // 获取实际消息ID（用于后续编辑）
-  const actualMsgId = editMsgId || loadingResp?.result?.message_id;
-
-  // 调用 AI 总结（带 KV 缓存）
-  const aiSummary = await summarizeEmail(mailId, mail.payload, env);
-
-  // 构建最终消息
-  let text = `${unread ? '🔵 未读' : '⚪️ 已读'}${starred ? ' ⭐' : ''}\n`;
-  text += '━━━━━━━━━━━━━━━━━━━━\n';
-  text += `📋 <b>${escapeHtml(subject)}</b>\n\n`;
-  text += `👤 ${escapeHtml(fromName)}\n`;
-  text += `📧 ${escapeHtml(fromEmail)}\n`;
-  text += `🕐 ${escapeHtml(date)}\n`;
-  if (attachments.length) text += `📎 附件: ${attachments.length} 个\n`;
-  text += '━━━━━━━━━━━━━━━━━━━━\n\n';
-  text += `🤖 <b>AI摘要</b>\n${aiSummary}`;
-
   await env.USER_TOKENS.put(`current:${userId}`, mailId, { expirationTtl: 3600 });
 
+  // 提前构建按钮（loading 和最终消息共用同一套按钮，避免 loading 时按钮消失）
+  const viewLink = await generateViewLink(userId, mailId, account.email, env);
   const buttons = [];
-
   buttons.push([
     { text: unread ? '✅ 已读' : '📩 未读', callback_data: unread ? 'do:read' : 'do:unread' },
     { text: starred ? '⭐ 取消' : '⭐ 星标', callback_data: starred ? 'do:unstar' : 'do:star' },
     { text: '🗑️', callback_data: 'do:delete' }
   ]);
-
-  // 网页预览按钮（完整原始邮件）
-  const viewLink = await generateViewLink(userId, mailId, account.email, env);
-  buttons.push([{ text: '🌐 在浏览器中查看原文', url: viewLink }]);
-
+  buttons.push([
+    { text: '🌐 浏览器查看原文', url: viewLink },
+    { text: '🔄 重新总结', callback_data: `resum:${mailId}` }
+  ]);
   buttons.push([{ text: `🔍 搜索 ${fromName.substring(0, 10)} 的邮件`, callback_data: `sf:${fromEmail}` }]);
-
   if (attachments.length > 0) {
     const attRow = [];
     attachments.slice(0, 3).forEach((att, i) => {
@@ -1082,16 +1097,62 @@ async function sendMailDetail(chatId, userId, mailId, editMsgId, _unused, env) {
     });
     buttons.push(attRow);
   }
-
   buttons.push([{ text: '⬅️ 返回列表', callback_data: 'back' }]);
 
-  await sendTelegram(env.BOT_TOKEN, 'editMessageText', {
+  // 发送"总结中"占位消息，带完整按钮，确保 loading 时按钮不消失
+  const loadingMethod = editMsgId ? 'editMessageText' : 'sendMessage';
+  const loadingParams = {
     chat_id: chatId,
-    message_id: actualMsgId,
-    text,
+    text: `${unread ? '🔵 未读' : '⚪️ 已读'}${starred ? ' ⭐' : ''}\n━━━━━━━━━━━━━━━━━━━━\n📋 <b>${escapeHtml(subject)}</b>\n\n👤 ${escapeHtml(fromName)}\n📧 ${escapeHtml(fromEmail)}\n🕐 ${escapeHtml(date)}\n━━━━━━━━━━━━━━━━━━━━\n\n⏳ AI 正在总结邮件内容...`,
     parse_mode: 'HTML',
     reply_markup: { inline_keyboard: buttons }
-  });
+  };
+  if (editMsgId) loadingParams.message_id = editMsgId;
+  const loadingResp = await sendTelegram(env.BOT_TOKEN, loadingMethod, loadingParams);
+
+  // 获取实际消息ID（用于后续编辑）
+  const actualMsgId = editMsgId || loadingResp?.result?.message_id;
+
+  // 用 try/catch 兜住 AI + 最终编辑，确保消息不会永远卡在 ⏳
+  try {
+    // 调用 AI 总结（带 KV 缓存）
+    const aiSummary = await summarizeEmail(mailId, mail.payload, env);
+
+    // 构建最终消息文本
+    let text = `${unread ? '🔵 未读' : '⚪️ 已读'}${starred ? ' ⭐' : ''}\n`;
+    text += '━━━━━━━━━━━━━━━━━━━━\n';
+    text += `📋 <b>${escapeHtml(subject)}</b>\n\n`;
+    text += `👤 ${escapeHtml(fromName)}\n`;
+    text += `📧 ${escapeHtml(fromEmail)}\n`;
+    text += `🕐 ${escapeHtml(date)}\n`;
+    if (attachments.length) text += `📎 附件: ${attachments.length} 个\n`;
+    text += '━━━━━━━━━━━━━━━━━━━━\n\n';
+    text += `🤖 <b>AI摘要</b>\n${aiSummary}`;
+
+    await sendTelegram(env.BOT_TOKEN, 'editMessageText', {
+      chat_id: chatId,
+      message_id: actualMsgId,
+      text,
+      parse_mode: 'HTML',
+      reply_markup: { inline_keyboard: buttons }
+    });
+
+  } catch (err) {
+    console.error('sendMailDetail final edit error:', err);
+    await sendTelegram(env.BOT_TOKEN, 'editMessageText', {
+      chat_id: chatId,
+      message_id: actualMsgId,
+      text: `📋 <b>${escapeHtml(subject)}</b>\n\n❌ AI总结失败，请点击下方按钮在浏览器查看原文\n\n<i>${err.message || '未知错误'}</i>`,
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🌐 浏览器查看原文', url: viewLink }],
+          [{ text: '🔄 重新总结', callback_data: `resum:${mailId}` }],
+          [{ text: '⬅️ 返回列表', callback_data: 'back' }]
+        ]
+      }
+    });
+  }
 }
 
 // ==================== (旧extractContent已由AI总结替代) ====================
@@ -1748,6 +1809,21 @@ async function handleCallback(query, env) {
 
   if (data === 'help') {
     await sendSearchHelp(chatId, env);
+    return;
+  }
+
+  // 重新总结：清除 KV 缓存后重新调用 AI 总结并刷新消息
+  if (data.startsWith('resum:')) {
+    const mailId = data.substring(6);
+    // 先编辑消息显示"总结中"提示，给用户即时反馈
+    await sendTelegram(env.BOT_TOKEN, 'answerCallbackQuery', {
+      callback_query_id: query.id,
+      text: '⏳ 正在重新总结...'
+    });
+    // 删除旧缓存
+    await env.USER_TOKENS.delete(`aisum:${mailId}`);
+    // 重新渲染详情（summarizeEmail 缓存已清，会重新调用 AI）
+    await sendMailDetail(chatId, userId, mailId, msgId, false, env);
     return;
   }
 
