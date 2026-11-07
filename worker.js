@@ -1,5 +1,5 @@
 /**
- * Gmail Telegram Bot - Cloudflare Worker (v2.3)
+ * Gmail Telegram Bot - Cloudflare Worker (v2.4)
  * 功能：通过 Telegram Bot 安全访问 Gmail 邮箱
  * 特性：多账户、分页浏览、实时推送、网页预览、批量操作
  */
@@ -1024,8 +1024,83 @@ function escapeHtml(text) {
     .replace(/"/g, '&quot;');
 }
 
-// ==================== 邮件详情（AI总结版） ====================
-async function sendMailDetail(chatId, userId, mailId, editMsgId, _unused, env) {
+// ==================== Telegram 邮件原文 ====================
+function originalHtmlToText(html) {
+  const entities = {
+    amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
+    copy: '©', reg: '®', trade: '™', ndash: '–', mdash: '—', hellip: '…',
+    lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”', bull: '•'
+  };
+
+  return html
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<(head|style|script)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '')
+    .replace(/<a\b[^>]*\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))[^>]*>([\s\S]*?)<\/a\s*>/gi,
+      (_, doubleQuoted, singleQuoted, unquoted, label) => {
+        const url = doubleQuoted ?? singleQuoted ?? unquoted;
+        const text = label.replace(/<[^>]+>/g, '').trim();
+        return !text || text === url ? url : `${text} (${url})`;
+      })
+    .replace(/<img\b[^>]*\balt\s*=\s*(?:"([^"]*)"|'([^']*)')[^>]*>/gi,
+      (_, doubleQuoted, singleQuoted) => doubleQuoted ?? singleQuoted)
+    .replace(/<\/?(?:p|div|br|tr|h[1-6]|li|blockquote|section|article|hr)\b[^>]*>/gi, '\n')
+    .replace(/<\/(?:td|th)\s*>/gi, '\t')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&(#\d+|#x[0-9a-f]+|[a-z]+);/gi, (entity, value) => {
+      if (value[0] !== '#') return entities[value.toLowerCase()] ?? entity;
+      const codePoint = value[1].toLowerCase() === 'x'
+        ? parseInt(value.slice(2), 16) : parseInt(value.slice(1), 10);
+      return codePoint > 0 && codePoint <= 0x10FFFF && !(codePoint >= 0xD800 && codePoint <= 0xDFFF)
+        ? String.fromCodePoint(codePoint) : entity;
+    })
+    .replace(/\r\n?/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function findOriginalBody(part, mimeType) {
+  if (!part || part.filename) return null;
+  const disposition = part.headers?.find(h => h.name.toLowerCase() === 'content-disposition')?.value || '';
+  if (/^attachment\b/i.test(disposition)) return null;
+  if (part.mimeType === mimeType && (part.body?.data || part.body?.attachmentId)) return part.body;
+  for (const child of part.parts || []) {
+    const body = findOriginalBody(child, mimeType);
+    if (body) return body;
+  }
+  return null;
+}
+
+async function getOriginalMailContent(payload, mailId, accessToken) {
+  for (const mimeType of ['text/plain', 'text/html']) {
+    const body = findOriginalBody(payload, mimeType);
+    if (!body) continue;
+    let data = body.data;
+    if (!data && body.attachmentId) {
+      const resp = await fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${mailId}/attachments/${body.attachmentId}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      if (!resp.ok) throw new Error('获取邮件正文失败');
+      data = (await resp.json()).data;
+    }
+    if (!data) continue;
+    const decoded = decodeBase64(data.replace(/-/g, '+').replace(/_/g, '/'));
+    const text = mimeType === 'text/html' ? originalHtmlToText(decoded) : decoded;
+    if (text.trim()) return text;
+  }
+  return '(无邮件正文)';
+}
+
+function truncateTelegramText(text, maxLength = 4096) {
+  let end = Math.min(text.length, maxLength);
+  // 不在 UTF-16 代理对中间截断，避免把 emoji 等字符切坏。
+  if (end < text.length && /[\uD800-\uDBFF]/.test(text[end - 1]) && /[\uDC00-\uDFFF]/.test(text[end])) end--;
+  return text.slice(0, end);
+}
+
+// ==================== 邮件详情 ====================
+async function sendMailDetail(chatId, userId, mailId, editMsgId, isFullMode, env) {
   const account = await getActiveAccount(userId, env);
   
   if (!account) {
@@ -1080,15 +1155,15 @@ async function sendMailDetail(chatId, userId, mailId, editMsgId, _unused, env) {
   // 提前构建按钮（loading 和最终消息共用同一套按钮，避免 loading 时按钮消失）
   const viewLink = await generateViewLink(userId, mailId, account.email, env);
   const buttons = [];
+  const actionSuffix = isFullMode ? ':original' : '';
   buttons.push([
-    { text: unread ? '✅ 已读' : '📩 未读', callback_data: unread ? 'do:read' : 'do:unread' },
-    { text: starred ? '⭐ 取消' : '⭐ 星标', callback_data: starred ? 'do:unstar' : 'do:star' },
-    { text: '🗑️', callback_data: 'do:delete' }
+    { text: unread ? '✅ 已读' : '📩 未读', callback_data: `do:${unread ? 'read' : 'unread'}${actionSuffix}` },
+    { text: starred ? '⭐ 取消' : '⭐ 星标', callback_data: `do:${starred ? 'unstar' : 'star'}${actionSuffix}` },
+    { text: '🗑️', callback_data: `do:delete${actionSuffix}` }
   ]);
-  buttons.push([
-    { text: '🌐 浏览器查看原文', url: viewLink },
-    { text: '🔄 重新总结', callback_data: `resum:${mailId}` }
-  ]);
+  const viewButtons = [{ text: '🌐 浏览器查看原文', url: viewLink }];
+  if (!isFullMode) viewButtons.push({ text: '🔄 重新总结', callback_data: `resum:${mailId}` });
+  buttons.push(viewButtons);
   buttons.push([{ text: `🔍 搜索 ${fromName.substring(0, 10)} 的邮件`, callback_data: `sf:${fromEmail}` }]);
   if (attachments.length > 0) {
     const attRow = [];
@@ -1098,6 +1173,32 @@ async function sendMailDetail(chatId, userId, mailId, editMsgId, _unused, env) {
     buttons.push(attRow);
   }
   buttons.push([{ text: '⬅️ 返回列表', callback_data: 'back' }]);
+
+  if (isFullMode) {
+    // 原文分支直接解码正文，不读取 AI 缓存，也不调用 AI。
+    let text;
+    try {
+      const original = await getOriginalMailContent(mail.payload, mailId, account.access_token);
+      text = `${unread ? '🔵 未读' : '⚪️ 已读'}${starred ? ' ⭐' : ''}\n`;
+      text += '━━━━━━━━━━━━━━━━━━━━\n';
+      text += `📋 ${subject}\n\n👤 ${fromName}\n📧 ${fromEmail}\n🕐 ${date}\n`;
+      if (attachments.length) text += `📎 附件: ${attachments.length} 个\n`;
+      text += `━━━━━━━━━━━━━━━━━━━━\n\n📖 邮件原文\n${original}`;
+    } catch (err) {
+      console.error('Original mail content error:', err);
+      text = '❌ 获取邮件原文失败';
+    }
+
+    const params = {
+      chat_id: chatId,
+      text: truncateTelegramText(text),
+      // 发送纯文本，正文中的 <、>、& 不会被当成 Telegram HTML 解析。
+      reply_markup: { inline_keyboard: buttons }
+    };
+    if (editMsgId) params.message_id = editMsgId;
+    await sendTelegram(env.BOT_TOKEN, editMsgId ? 'editMessageText' : 'sendMessage', params);
+    return;
+  }
 
   // 发送"总结中"占位消息，带完整按钮，确保 loading 时按钮不消失
   const loadingMethod = editMsgId ? 'editMessageText' : 'sendMessage';
@@ -1899,8 +2000,8 @@ if (data.startsWith('ref:')) {
     }
 
     if (action === 'full') {
-      // 显示邮件详情（含AI摘要，推送通知"查看详情"按钮）
-      await sendMailDetail(chatId, userId, mailId, msgId, false, env);
+      // "在 Telegram 查看详情"直接进入原文分支。
+      await sendMailDetail(chatId, userId, mailId, msgId, true, env);
       return;
     }
 
@@ -1941,7 +2042,7 @@ if (data.startsWith('ref:')) {
   }
 
   if (data.startsWith('do:')) {
-    const action = data.substring(3);
+    const [action, viewMode] = data.substring(3).split(':');
     const mailId = await env.USER_TOKENS.get(`current:${userId}`);
     
     // ✅ 添加友好的错误提示
@@ -1973,7 +2074,7 @@ if (data.startsWith('ref:')) {
         },
         body: JSON.stringify(actions[action])
       });
-      await sendMailDetail(chatId, userId, mailId, msgId, false, env);
+      await sendMailDetail(chatId, userId, mailId, msgId, viewMode === 'original', env);
       return;
     }
 
@@ -3354,7 +3455,7 @@ function getTermsPage() {
       </ul>
 
       <div class="date">
-        最后更新日期：2026年1月29日
+        最后更新日期：2026年11月07日
       </div>
     </div>
 
