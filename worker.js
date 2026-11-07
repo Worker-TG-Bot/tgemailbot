@@ -1024,83 +1024,8 @@ function escapeHtml(text) {
     .replace(/"/g, '&quot;');
 }
 
-// ==================== Telegram 邮件原文 ====================
-function originalHtmlToText(html) {
-  const entities = {
-    amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
-    copy: '©', reg: '®', trade: '™', ndash: '–', mdash: '—', hellip: '…',
-    lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”', bull: '•'
-  };
-
-  return html
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/<(head|style|script)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '')
-    .replace(/<a\b[^>]*\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))[^>]*>([\s\S]*?)<\/a\s*>/gi,
-      (_, doubleQuoted, singleQuoted, unquoted, label) => {
-        const url = doubleQuoted ?? singleQuoted ?? unquoted;
-        const text = label.replace(/<[^>]+>/g, '').trim();
-        return !text || text === url ? url : `${text} (${url})`;
-      })
-    .replace(/<img\b[^>]*\balt\s*=\s*(?:"([^"]*)"|'([^']*)')[^>]*>/gi,
-      (_, doubleQuoted, singleQuoted) => doubleQuoted ?? singleQuoted)
-    .replace(/<\/?(?:p|div|br|tr|h[1-6]|li|blockquote|section|article|hr)\b[^>]*>/gi, '\n')
-    .replace(/<\/(?:td|th)\s*>/gi, '\t')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&(#\d+|#x[0-9a-f]+|[a-z]+);/gi, (entity, value) => {
-      if (value[0] !== '#') return entities[value.toLowerCase()] ?? entity;
-      const codePoint = value[1].toLowerCase() === 'x'
-        ? parseInt(value.slice(2), 16) : parseInt(value.slice(1), 10);
-      return codePoint > 0 && codePoint <= 0x10FFFF && !(codePoint >= 0xD800 && codePoint <= 0xDFFF)
-        ? String.fromCodePoint(codePoint) : entity;
-    })
-    .replace(/\r\n?/g, '\n')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
-function findOriginalBody(part, mimeType) {
-  if (!part || part.filename) return null;
-  const disposition = part.headers?.find(h => h.name.toLowerCase() === 'content-disposition')?.value || '';
-  if (/^attachment\b/i.test(disposition)) return null;
-  if (part.mimeType === mimeType && (part.body?.data || part.body?.attachmentId)) return part.body;
-  for (const child of part.parts || []) {
-    const body = findOriginalBody(child, mimeType);
-    if (body) return body;
-  }
-  return null;
-}
-
-async function getOriginalMailContent(payload, mailId, accessToken) {
-  for (const mimeType of ['text/plain', 'text/html']) {
-    const body = findOriginalBody(payload, mimeType);
-    if (!body) continue;
-    let data = body.data;
-    if (!data && body.attachmentId) {
-      const resp = await fetch(
-        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${mailId}/attachments/${body.attachmentId}`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
-      if (!resp.ok) throw new Error('获取邮件正文失败');
-      data = (await resp.json()).data;
-    }
-    if (!data) continue;
-    const decoded = decodeBase64(data.replace(/-/g, '+').replace(/_/g, '/'));
-    const text = mimeType === 'text/html' ? originalHtmlToText(decoded) : decoded;
-    if (text.trim()) return text;
-  }
-  return '(无邮件正文)';
-}
-
-function truncateTelegramText(text, maxLength = 4096) {
-  let end = Math.min(text.length, maxLength);
-  // 不在 UTF-16 代理对中间截断，避免把 emoji 等字符切坏。
-  if (end < text.length && /[\uD800-\uDBFF]/.test(text[end - 1]) && /[\uDC00-\uDFFF]/.test(text[end])) end--;
-  return text.slice(0, end);
-}
-
 // ==================== 邮件详情 ====================
-async function sendMailDetail(chatId, userId, mailId, editMsgId, isFullMode, env) {
+async function sendMailDetail(chatId, userId, mailId, editMsgId, env) {
   const account = await getActiveAccount(userId, env);
   
   if (!account) {
@@ -1155,15 +1080,15 @@ async function sendMailDetail(chatId, userId, mailId, editMsgId, isFullMode, env
   // 提前构建按钮（loading 和最终消息共用同一套按钮，避免 loading 时按钮消失）
   const viewLink = await generateViewLink(userId, mailId, account.email, env);
   const buttons = [];
-  const actionSuffix = isFullMode ? ':original' : '';
   buttons.push([
-    { text: unread ? '✅ 已读' : '📩 未读', callback_data: `do:${unread ? 'read' : 'unread'}${actionSuffix}` },
-    { text: starred ? '⭐ 取消' : '⭐ 星标', callback_data: `do:${starred ? 'unstar' : 'star'}${actionSuffix}` },
-    { text: '🗑️', callback_data: `do:delete${actionSuffix}` }
+    { text: unread ? '✅ 已读' : '📩 未读', callback_data: unread ? 'do:read' : 'do:unread' },
+    { text: starred ? '⭐ 取消' : '⭐ 星标', callback_data: starred ? 'do:unstar' : 'do:star' },
+    { text: '🗑️', callback_data: 'do:delete' }
   ]);
-  const viewButtons = [{ text: '🌐 浏览器查看原文', url: viewLink }];
-  if (!isFullMode) viewButtons.push({ text: '🔄 重新总结', callback_data: `resum:${mailId}` });
-  buttons.push(viewButtons);
+  buttons.push([
+    { text: '🌐 浏览器查看原文', url: viewLink },
+    { text: '🔄 重新总结', callback_data: `resum:${mailId}` }
+  ]);
   buttons.push([{ text: `🔍 搜索 ${fromName.substring(0, 10)} 的邮件`, callback_data: `sf:${fromEmail}` }]);
   if (attachments.length > 0) {
     const attRow = [];
@@ -1173,32 +1098,6 @@ async function sendMailDetail(chatId, userId, mailId, editMsgId, isFullMode, env
     buttons.push(attRow);
   }
   buttons.push([{ text: '⬅️ 返回列表', callback_data: 'back' }]);
-
-  if (isFullMode) {
-    // 原文分支直接解码正文，不读取 AI 缓存，也不调用 AI。
-    let text;
-    try {
-      const original = await getOriginalMailContent(mail.payload, mailId, account.access_token);
-      text = `${unread ? '🔵 未读' : '⚪️ 已读'}${starred ? ' ⭐' : ''}\n`;
-      text += '━━━━━━━━━━━━━━━━━━━━\n';
-      text += `📋 ${subject}\n\n👤 ${fromName}\n📧 ${fromEmail}\n🕐 ${date}\n`;
-      if (attachments.length) text += `📎 附件: ${attachments.length} 个\n`;
-      text += `━━━━━━━━━━━━━━━━━━━━\n\n📖 邮件原文\n${original}`;
-    } catch (err) {
-      console.error('Original mail content error:', err);
-      text = '❌ 获取邮件原文失败';
-    }
-
-    const params = {
-      chat_id: chatId,
-      text: truncateTelegramText(text),
-      // 发送纯文本，正文中的 <、>、& 不会被当成 Telegram HTML 解析。
-      reply_markup: { inline_keyboard: buttons }
-    };
-    if (editMsgId) params.message_id = editMsgId;
-    await sendTelegram(env.BOT_TOKEN, editMsgId ? 'editMessageText' : 'sendMessage', params);
-    return;
-  }
 
   // 发送"总结中"占位消息，带完整按钮，确保 loading 时按钮不消失
   const loadingMethod = editMsgId ? 'editMessageText' : 'sendMessage';
@@ -1253,279 +1152,6 @@ async function sendMailDetail(chatId, userId, mailId, editMsgId, isFullMode, env
         ]
       }
     });
-  }
-}
-
-// ==================== (旧extractContent已由AI总结替代) ====================
-function _extractContent_removed(payload, maxLen, isFullMode) {
-  let bodyData = findBody(payload, 'text/html') || findBody(payload, 'text/plain');
-  
-  if (!bodyData) return '(无内容)';
-
-  try {
-    const base64 = bodyData.replace(/-/g, '+').replace(/_/g, '/');
-    let text = decodeBase64(base64);
-
-    // 清理 HTML 标签，保留文本内容和链接
-    text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
-    text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
-    
-    // 处理图片标签 - 转换为 [图片] 链接（带换行）
-    text = text.replace(/<img[^>]*src=["']([^"']+)["'][^>]*alt=["']([^"']*)["'][^>]*>/gi, (match, src, alt) => {
-      const linkText = alt || '图片';
-      return `\n<a href="${src}">[${linkText}]</a>\n`;
-    });
-    text = text.replace(/<img[^>]*src=["']([^"']+)["'][^>]*>/gi, (match, src) => {
-      return `\n<a href="${src}">[图片]</a>\n`;
-    });
-    
-    // 处理视频标签
-    text = text.replace(/<video[^>]*src=["']([^"']+)["'][^>]*>/gi, (match, src) => {
-      return `\n<a href="${src}">[视频]</a>\n`;
-    });
-    text = text.replace(/<source[^>]*src=["']([^"']+)["'][^>]*>/gi, (match, src) => {
-      if (src.match(/\.(mp4|webm|ogg|mov)$/i)) {
-        return `\n<a href="${src}">[视频]</a>\n`;
-      }
-      return '';
-    });
-    
-    // 提取链接并转换为 Telegram HTML 格式
-    const links = [];
-    text = text.replace(/<a\s+[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (match, url, linkText) => {
-      // 清理链接文本中的HTML标签
-      let cleanText = linkText.replace(/<[^>]+>/g, '').trim();
-      
-      // 如果链接文本为空，尝试生成友好的文本
-      if (!cleanText) {
-        if (url.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?|$)/i)) {
-          cleanText = '[图片]';
-        } else if (url.match(/\.(mp4|webm|ogg|mov|avi|flv)(\?|$)/i)) {
-          cleanText = '[视频]';
-        } else if (url.match(/\.(mp3|wav|ogg|m4a|flac)(\?|$)/i)) {
-          cleanText = '[音频]';
-        } else if (url.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx)(\?|$)/i)) {
-          cleanText = '[文档]';
-        } else if (url.length > 50) {
-          try {
-            const urlObj = new URL(url);
-            cleanText = `[${urlObj.hostname}]`;
-          } catch {
-            cleanText = '[链接]';
-          }
-        } else {
-          cleanText = '[链接]';
-        }
-      } else if (cleanText === url && url.length > 50) {
-        if (url.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?|$)/i)) {
-          cleanText = '[图片]';
-        } else if (url.match(/\.(mp4|webm|ogg|mov)(\?|$)/i)) {
-          cleanText = '[视频]';
-        } else {
-          try {
-            const urlObj = new URL(url);
-            cleanText = `[${urlObj.hostname}]`;
-          } catch {
-            cleanText = '[链接]';
-          }
-        }
-      }
-      
-      // 清理特殊字符
-      cleanText = cleanText
-        .replace(/&nbsp;/gi, ' ')
-        .replace(/&amp;/gi, '&')
-        .replace(/&lt;/gi, '<')
-        .replace(/&gt;/gi, '>')
-        .replace(/&quot;/gi, '"');
-      
-      // 清理URL中的HTML实体
-      url = url
-        .replace(/&amp;/gi, '&')
-        .replace(/&lt;/gi, '<')
-        .replace(/&gt;/gi, '>')
-        .replace(/&quot;/gi, '"');
-      
-      const placeholder = `__LINK_${links.length}__`;
-      links.push({ url, text: cleanText });
-      return ` ${placeholder} `;  // 链接前后加空格，避免粘连
-    });
-    
-    // 清理HTML标签，保留换行
-    text = text.replace(/<br\s*\/?>/gi, '\n');
-    text = text.replace(/<\/p>/gi, '\n\n');
-    text = text.replace(/<p[^>]*>/gi, '');
-    text = text.replace(/<\/div>/gi, '\n');
-    text = text.replace(/<div[^>]*>/gi, '');
-    text = text.replace(/<\/li>/gi, '\n');
-    text = text.replace(/<li[^>]*>/gi, '\n• ');
-    text = text.replace(/<ul[^>]*>/gi, '\n');
-    text = text.replace(/<\/ul>/gi, '\n');
-    text = text.replace(/<ol[^>]*>/gi, '\n');
-    text = text.replace(/<\/ol>/gi, '\n');
-    text = text.replace(/<\/tr>/gi, '\n');
-    text = text.replace(/<tr[^>]*>/gi, '');
-    text = text.replace(/<\/(h1|h2|h3|h4|h5|h6)>/gi, '\n\n');
-    text = text.replace(/<(h1|h2|h3|h4|h5|h6)[^>]*>/gi, '\n');
-    text = text.replace(/<\/?(table|tbody|thead|td|th|span|strong|b|i|em|u)[^>]*>/gi, '');
-    // 移除所有其他HTML标签
-    text = text.replace(/<[^>]+>/g, '');
-    
-    // 清理所有HTML实体（完整列表）
-    const htmlEntities = {
-      '&nbsp;': ' ',
-      '&amp;': '&',
-      '&lt;': '<',
-      '&gt;': '>',
-      '&quot;': '"',
-      '&apos;': "'",
-      '&copy;': '\u00A9',
-      '&reg;': '\u00AE',
-      '&trade;': '\u2122',
-      '&euro;': '\u20AC',
-      '&pound;': '\u00A3',
-      '&yen;': '\u00A5',
-      '&cent;': '\u00A2',
-      '&sect;': '\u00A7',
-      '&deg;': '\u00B0',
-      '&plusmn;': '\u00B1',
-      '&para;': '\u00B6',
-      '&middot;': '\u00B7',
-      '&ndash;': '\u2013',
-      '&mdash;': '\u2014',
-      '&lsquo;': '\u2018',
-      '&rsquo;': '\u2019',
-      '&ldquo;': '\u201C',
-      '&rdquo;': '\u201D',
-      '&bull;': '\u2022',
-      '&hellip;': '\u2026'
-    };
-    
-    // 替换命名实体
-    for (const [entity, char] of Object.entries(htmlEntities)) {
-      text = text.replace(new RegExp(entity, 'gi'), char);
-    }
-    
-    // 清理数字实体
-    text = text
-      .replace(/&#8202;/g, '')  // 细空格
-      .replace(/&#8203;/g, '')  // 零宽空格
-      .replace(/&#160;/g, ' ')  // 不间断空格
-      .replace(/&#32;/g, ' ')   // 普通空格
-      .replace(/&#96;/g, '')    // 反引号
-      .replace(/&#x60;/g, '')   // 十六进制的96
-      .replace(/&#x2018;/g, '\u2018') // 左单引号
-      .replace(/&#x2019;/g, '\u2019') // 右单引号
-      .replace(/&#x201C;/g, '\u201C') // 左双引号
-      .replace(/&#x201D;/g, '\u201D') // 右双引号
-      .replace(/&#169;/g, '\u00A9')   // 版权符号
-      .replace(/&#xa9;/g, '\u00A9')   // 版权符号（十六进制）
-      .replace(/&#\d+;/g, '')    // 移除其他数字实体
-      .replace(/&#x[0-9a-fA-F]+;/g, ''); // 移除十六进制实体
-    
-    // 移除Unicode控制字符和零宽字符（保留换行符\n）
-    text = text
-      .replace(/[\u200B-\u200D\uFEFF]/g, '')  // 零宽字符
-      .replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F\u007F-\u009F]/g, '');  // 控制字符（保留\n=\u000A和\r=\u000D）
-    
-    // 统一换行符
-    text = text.replace(/\r\n/g, '\n');
-    text = text.replace(/\r/g, '\n');
-    
-    // 清理空格和换行
-    text = text.replace(/[ \t]+/g, ' ');  // 多个空格合并为一个
-    text = text.replace(/ *\n */g, '\n'); // 移除换行符前后的空格
-    text = text.replace(/\n{3,}/g, '\n\n'); // 最多保留两个连续换行
-    text = text.replace(/^\n+/, '');  // 移除开头的换行
-    text = text.replace(/\n+$/, '');  // 移除结尾的换行
-    text = text.trim();
-    
-    // 清理多余的项目符号
-    text = text.replace(/\n•\s*\n/g, '\n'); // 移除空的列表项
-    text = text.replace(/•\s+•/g, '•'); // 合并连续的项目符号
-    
-    // 移除开头的孤立数字
-    text = text.replace(/^\d+[\s\n]+/, '');
-    text = text.replace(/\b\d+\s*(?=__LINK_)/g, '');
-
-    // 先转义普通文本
-    text = escapeHtml(text);
-
-    // 恢复链接
-    links.forEach((link, i) => {
-      const placeholder = escapeHtml(`__LINK_${i}__`);
-      const escapedText = escapeHtml(link.text);
-      const escapedUrl = link.url.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-      const linkHtml = `<a href="${escapedUrl}">${escapedText}</a>`;
-      text = text.replace(placeholder, linkHtml);
-    });
-    
-    // 最后清理
-    text = text.replace(/^\d+\s*/g, '');
-    text = text.trim();
-
-    // 截断处理
-    if (text.length > maxLen) {
-      let cutPos = maxLen;
-      const linkPattern = /<a href="[^"]*">[^<]*<\/a>/g;
-      let match;
-      let lastSafePos = 0;
-      
-      while ((match = linkPattern.exec(text)) !== null) {
-        if (match.index < maxLen) {
-          lastSafePos = match.index + match[0].length;
-        } else {
-          break;
-        }
-      }
-      
-      if (lastSafePos > maxLen - 100) {
-        cutPos = lastSafePos;
-      }
-      
-      text = text.substring(0, cutPos);
-      
-      const openTags = (text.match(/<a href/g) || []).length;
-      const closeTags = (text.match(/<\/a>/g) || []).length;
-      if (openTags > closeTags) {
-        text = text.replace(/<a href="[^"]*">(?!.*<\/a>)[^<]*$/g, '');
-      }
-      
-      if (isFullMode) {
-        text += '\n\n... (内容过长，点击浏览器查看完整)';
-      } else {
-        text += '\n\n... (点击查看完整)';
-      }
-    }
-
-    return text || '(无内容)';
-  } catch (e) {
-    console.error('Content extraction error:', e);
-    try {
-      const plainData = findBody(payload, 'text/plain');
-      if (plainData) {
-        const base64 = plainData.replace(/-/g, '+').replace(/_/g, '/');
-        let plainText = decodeBase64(base64);
-        plainText = plainText
-          .replace(/&#\d+;/g, '')
-          .replace(/&#x[0-9a-fA-F]+;/g, '')
-          .replace(/&nbsp;/gi, ' ')
-          .replace(/&amp;/gi, '&')
-          .replace(/&copy;/gi, '©')
-          .replace(/[\u200B-\u200D\uFEFF]/g, '')
-          .trim();
-        
-        plainText = plainText.replace(/^\d+[\s\n]+/, '');
-        
-        if (plainText.length > maxLen) {
-          plainText = plainText.substring(0, maxLen) + '\n\n... (点击查看完整)';
-        }
-        return escapeHtml(plainText);
-      }
-    } catch (e2) {
-      console.error('Plain text extraction error:', e2);
-    }
-    return '(解析失败)';
   }
 }
 
@@ -1924,7 +1550,7 @@ async function handleCallback(query, env) {
     // 删除旧缓存
     await env.USER_TOKENS.delete(`aisum:${mailId}`);
     // 重新渲染详情（summarizeEmail 缓存已清，会重新调用 AI）
-    await sendMailDetail(chatId, userId, mailId, msgId, false, env);
+    await sendMailDetail(chatId, userId, mailId, msgId, env);
     return;
   }
 
@@ -1964,7 +1590,7 @@ if (data.startsWith('ref:')) {
     const index = parseInt(data.substring(2));
     const mailId = await getMailId(userId, index, env);
     if (mailId) {
-      await sendMailDetail(chatId, userId, mailId, msgId, false, env);
+      await sendMailDetail(chatId, userId, mailId, msgId, env);
     }
     return;
   }
@@ -1974,6 +1600,7 @@ if (data.startsWith('ref:')) {
     const parts = data.substring(3).split(':');
     const mailId = parts[0];
     const action = parts[1];
+    if (action !== 'read' && action !== 'delete') return;
     
     // ✅ 检查是否过期（24小时）
     const mailKey = `newmail:${userId}:${mailId}`;
@@ -1999,12 +1626,6 @@ if (data.startsWith('ref:')) {
       return;
     }
 
-    if (action === 'full') {
-      // "在 Telegram 查看详情"直接进入原文分支。
-      await sendMailDetail(chatId, userId, mailId, msgId, true, env);
-      return;
-    }
-
     if (action === 'read') {
       await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${mailId}/modify`, {
         method: 'POST',
@@ -2019,9 +1640,7 @@ if (data.startsWith('ref:')) {
         message_id: msgId,
         text: '✅ 已标记为已读',
         reply_markup: {
-          inline_keyboard: [[
-            { text: '📖 在 Telegram 查看', callback_data: `nm:${mailId}:full` }
-          ]]
+          inline_keyboard: []
         }
       });
       return;
@@ -2042,7 +1661,7 @@ if (data.startsWith('ref:')) {
   }
 
   if (data.startsWith('do:')) {
-    const [action, viewMode] = data.substring(3).split(':');
+    const [action] = data.substring(3).split(':');
     const mailId = await env.USER_TOKENS.get(`current:${userId}`);
     
     // ✅ 添加友好的错误提示
@@ -2074,7 +1693,7 @@ if (data.startsWith('ref:')) {
         },
         body: JSON.stringify(actions[action])
       });
-      await sendMailDetail(chatId, userId, mailId, msgId, viewMode === 'original', env);
+      await sendMailDetail(chatId, userId, mailId, msgId, env);
       return;
     }
 
@@ -2274,7 +1893,6 @@ async function handlePubSubPush(message, env) {
               reply_markup: {
                 inline_keyboard: [
                   [{ text: '🌐 在浏览器中查看原文', url: viewLink }],
-                  [{ text: '📖 在 Telegram 查看详情', callback_data: `nm:${m.message.id}:full` }],
                   [
                     { text: '✅ 已读', callback_data: `nm:${m.message.id}:read` },
                     { text: '🗑️ 删除', callback_data: `nm:${m.message.id}:delete` }
